@@ -25,7 +25,7 @@ export default function Home() {
                 GlowApp
                 <sup className="version-badge version-badge--hero">v{APP_VERSION}</sup>
               </h1>
-              <p className="page-hero__subtitle">Costruire e Sorvegliare il Se</p>
+              <p className="page-hero__subtitle">Costruisci il tuo sé ideale</p>
             </div>
           </div>
           <p className="page-intro">
