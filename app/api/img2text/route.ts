@@ -1,6 +1,7 @@
 // API route for img2text (image captioning)
 import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
+import { PROMPTS } from '../../../lib/prompts';
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_KEY
@@ -17,6 +18,15 @@ async function convertToBase64(imageUrlOrData: string): Promise<string> {
   return `data:${mime};base64,${base64}`;
 }
 
+function getReplicateImageInput(imageUrlOrData: string): string {
+  // Prefer hosted URLs when available. Replicate handles them directly and this
+  // avoids sending oversized data URIs to models like LLaVA.
+  if (/^https?:\/\//i.test(imageUrlOrData)) {
+    return imageUrlOrData;
+  }
+  return imageUrlOrData;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -24,9 +34,25 @@ export async function POST(request: NextRequest) {
     if (!image_data) {
       return NextResponse.json({ error: 'Immagine mancante.' }, { status: 400 });
     }
-    const img = await convertToBase64(image_data);
+    const replicateImageInput = getReplicateImageInput(image_data);
+    const img = /^https?:\/\//i.test(replicateImageInput)
+      ? replicateImageInput
+      : await convertToBase64(replicateImageInput);
     let output;
-    if (model === 'blip2') {
+    if (model === 'llava13b') {
+      const input = {
+        image: img,
+        prompt: PROMPTS.img2text.llava13bPrompt,
+        max_tokens: 400,
+        temperature: 0.2,
+        top_p: 1,
+      };
+      try {
+        output = await replicate.run('yorickvp/llava-13b:80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb', { input });
+      } catch (err: any) {
+        return NextResponse.json({ error: err?.message || 'Errore generazione descrizione (LLaVA-13B).', replicate_detail: err }, { status: 500 });
+      }
+    } else if (model === 'blip2') {
       // BLIP-2: parametri semplici
       const input = {
         image: img,
@@ -44,13 +70,13 @@ export async function POST(request: NextRequest) {
       const input = {
         image: img,
         caption: false,
-        question: "Fornisci una descrizione dettagliata degli elementi estetici, colori, accessori, luci, vestiti e dettagli stilistici presenti nell'immagine.",
+        question: PROMPTS.img2text.blip3Question,
         top_k: 50,
         top_p: 1,
         do_sample: false,
         num_beams: 1,
         temperature: 1,
-        system_prompt: "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.",
+        system_prompt: PROMPTS.img2text.blip3SystemPrompt,
         length_penalty: 1,
         max_new_tokens: 768,
         repetition_penalty: 1
@@ -65,7 +91,7 @@ export async function POST(request: NextRequest) {
     if (typeof output === 'string') {
       return NextResponse.json({ description: output });
     } else if (Array.isArray(output) && output.length && typeof output[0] === 'string') {
-      return NextResponse.json({ description: output[0] });
+      return NextResponse.json({ description: output.join('').trim() });
     } else {
       return NextResponse.json({ error: 'Nessuna descrizione generata.', replicate_detail: output }, { status: 500 });
     }

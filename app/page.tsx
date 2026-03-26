@@ -1,9 +1,10 @@
 
 "use client";
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { PROMPTS } from "../lib/prompts";
 
 // Textarea auto-resize per descrizioni ispirazionali
-function AutoResizeTextarea({ value, onChange, placeholder, style, className }: { value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder?: string; style?: React.CSSProperties; className?: string }) {
+function AutoResizeTextarea({ value, onChange, onBlur, placeholder, style, className }: { value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void; placeholder?: string; style?: React.CSSProperties; className?: string }) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const ta = taRef.current;
@@ -18,6 +19,7 @@ function AutoResizeTextarea({ value, onChange, placeholder, style, className }: 
       rows={1}
       value={value}
       onChange={onChange}
+      onBlur={onBlur}
       placeholder={placeholder}
       className={className}
       style={{ ...style, resize: 'none', overflow: 'hidden' }}
@@ -27,6 +29,7 @@ function AutoResizeTextarea({ value, onChange, placeholder, style, className }: 
 
 type PinterestImage = { id: number; src: string; title: string };
 type ImageSource = 'pexels' | 'unsplash';
+type SavedGeneratedImage = { id: string; src: string; prompt: string };
 
 function orderImagesByPriority(images: PinterestImage[], orderedIds: number[]) {
   const selectedImages = orderedIds
@@ -98,6 +101,7 @@ export default function Home() {
   const [userImage, setUserImage] = useState<string>('');
   const [userFile, setUserFile] = useState<File | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string>('');
+  const [savedGeneratedImages, setSavedGeneratedImages] = useState<SavedGeneratedImage[]>([]);
   const [error, setError] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false); // loading per sezione 5
   const [isGeneratingDescriptions, setIsGeneratingDescriptions] = useState(false); // loading captioning per sezione 3
@@ -115,11 +119,14 @@ export default function Home() {
   // Stato per rotella su singola descrizione
   const [loadingDescId, setLoadingDescId] = useState<number | null>(null);
 
-  // Stato per modello di captioning (blip2/blip3)
-  const [captionModel, setCaptionModel] = useState<'blip2' | 'blip3'>('blip2');
+  // Stato per modello di captioning (llava13b/blip2/blip3)
+  const [captionModel, setCaptionModel] = useState<'llava13b' | 'blip2' | 'blip3'>('llava13b');
 
   // Stato per la descrizione unificata
   const [unifiedDescription, setUnifiedDescription] = useState('');
+  const [isUnifiedDescriptionEditing, setIsUnifiedDescriptionEditing] = useState(false);
+  const shouldRefreshUnifiedPromptRef = useRef(false);
+  const suppressUnifiedPromptRefreshRef = useRef(false);
 
   // Memo per immagini selezionate (serve per useEffect sotto)
   const selectedImages = useMemo(
@@ -139,6 +146,7 @@ export default function Home() {
   async function generateUnifiedDescriptionAI(descriptions: string[]) {
     if (descriptions.length === 0) {
       setUnifiedDescription('');
+      setIsUnifiedDescriptionEditing(false);
       return;
     }
     setIsGeneratingUnifiedPrompt(true);
@@ -153,19 +161,29 @@ export default function Home() {
       if (!resp.ok) {
         setError(data.error || 'Errore AI');
         setUnifiedDescription('');
+        setIsUnifiedDescriptionEditing(false);
       } else {
         setUnifiedDescription(data.prompt || '');
+        setIsUnifiedDescriptionEditing(false);
       }
     } catch (e: any) {
       setError('Errore di rete nella fusione AI.');
       setUnifiedDescription('');
+      setIsUnifiedDescriptionEditing(false);
     } finally {
       setIsGeneratingUnifiedPrompt(false);
     }
   }
 
-  // Aggiorna la descrizione unificata ogni volta che cambiano le descrizioni ispirazionali
+  // Aggiorna la descrizione unificata solo dopo un vero aggiornamento delle descrizioni.
   useEffect(() => {
+    if (!shouldRefreshUnifiedPromptRef.current) {
+      return;
+    }
+    if (suppressUnifiedPromptRefreshRef.current) {
+      return;
+    }
+    shouldRefreshUnifiedPromptRef.current = false;
     const descs = selectedImages.map(img => inspoDescriptions[img.id]).filter(Boolean);
     generateUnifiedDescriptionAI(descs);
   }, [selectedImages, inspoDescriptions]);
@@ -209,16 +227,47 @@ export default function Home() {
     }
   };
 
-
-
   const canGenerate =
-    selectedIds.length >= 1 && userImage && !isGenerating;
+    selectedIds.length >= 1 && Boolean(userImage) && !isGenerating;
+
+  const isCurrentImageSaved = generatedImage
+    ? savedGeneratedImages.some((item) => item.src === generatedImage)
+    : false;
+
+  const downloadImage = (src: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = src;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const saveCurrentGeneratedImage = () => {
+    if (!generatedImage || isCurrentImageSaved) {
+      return;
+    }
+
+    setSavedGeneratedImages((prev) => [
+      {
+        id: `${Date.now()}-${prev.length}`,
+        src: generatedImage,
+        prompt: usedPrompt,
+      },
+      ...prev,
+    ]);
+  };
+
+  const removeSavedGeneratedImage = (id: string) => {
+    setSavedGeneratedImages((prev) => prev.filter((item) => item.id !== id));
+  };
 
   const handleImageToggle = (id: number) => {
     setError('');
     setGeneratedImage('');
     let newSelected;
     if (selectedIds.includes(id)) {
+      shouldRefreshUnifiedPromptRef.current = true;
       newSelected = selectedIds.filter((sid) => sid !== id);
     } else {
       if (selectedIds.length >= MAX_INSPO) return; // Limite massimo
@@ -239,6 +288,7 @@ export default function Home() {
   const moveSelectedPriority = (id: number, direction: 'up' | 'down') => {
     setError('');
     setGeneratedImage('');
+    shouldRefreshUnifiedPromptRef.current = true;
     setSelectedIds((prev) => {
       const currentIndex = prev.indexOf(id);
       if (currentIndex === -1) return prev;
@@ -273,11 +323,23 @@ export default function Home() {
     setInspoDescriptions((prev) => ({ ...prev, [id]: value }));
   };
 
+  const handleInspoBlur = (id: number) => {
+    setOpenDescriptions((prev) => ({ ...prev, [id]: false }));
+    shouldRefreshUnifiedPromptRef.current = true;
+    const descs = selectedImages.map(img => inspoDescriptions[img.id]).filter(Boolean);
+    generateUnifiedDescriptionAI(descs);
+  };
+
+  const handleUnifiedDescriptionBlur = () => {
+    setIsUnifiedDescriptionEditing(false);
+  };
+
   // Utility per attendere ms millisecondi
 
 
   // Genera descrizione automatica per una singola immagine
-  const generateSingleInspoDescription = async (id: number, src: string) => {
+  const generateSingleInspoDescription = async (id: number, src: string, options?: { triggerUnifiedPrompt?: boolean }) => {
+    const triggerUnifiedPrompt = options?.triggerUnifiedPrompt ?? true;
     setError('');
     setLoadingDescId(id);
     try {
@@ -297,6 +359,10 @@ export default function Home() {
       }
       if (data.description) {
         setInspoDescriptions((prev) => ({ ...prev, [id]: data.description }));
+        if (triggerUnifiedPrompt && !suppressUnifiedPromptRefreshRef.current) {
+          shouldRefreshUnifiedPromptRef.current = true;
+        }
+        return data.description as string;
       } else if (data.error) {
         setError(`Errore img2text: ${data.error}`);
       }
@@ -305,6 +371,7 @@ export default function Home() {
     } finally {
       setLoadingDescId(null);
     }
+    return null;
   };
 
   // Genera descrizioni automatiche per tutte le immagini selezionate (opzionale)
@@ -312,13 +379,22 @@ export default function Home() {
     if (selectedImages.length === 0) return;
     setError('');
     setIsGeneratingDescriptions(true);
+    suppressUnifiedPromptRefreshRef.current = true;
+    const nextDescriptions = { ...inspoDescriptions };
     try {
       for (const img of selectedImages) {
-        await generateSingleInspoDescription(img.id, img.src);
+        const generatedDescription = await generateSingleInspoDescription(img.id, img.src, { triggerUnifiedPrompt: false });
+        if (generatedDescription) {
+          nextDescriptions[img.id] = generatedDescription;
+        }
       }
     } finally {
+      suppressUnifiedPromptRefreshRef.current = false;
       setIsGeneratingDescriptions(false);
     }
+
+    const descs = selectedImages.map((img) => nextDescriptions[img.id]).filter(Boolean);
+    await generateUnifiedDescriptionAI(descs);
   };
 
   const generateAspirational = async () => {
@@ -333,29 +409,11 @@ export default function Home() {
       return;
     }
     // Prompt effettivo inviato (con glowup)
-    const glowupInstruction = 'The goal is a glowup: make the person look more fit, beautiful, and slim, while keeping coherence with the original image and the inspirational references.';
-    const promptPrioritySummary = selectedImages
-      .map((img, index) => {
-        const description = inspoDescriptions[img.id]?.trim();
-        return `${index + 1}. ${description || img.title || 'Inspirational reference'}`;
-      })
-      .join('\n');
+    const glowupInstruction = PROMPTS.generateImage.glowupInstruction;
     const fullPrompt = `${unifiedDescription?.trim() || ''}\n${glowupInstruction}`;
-    const promptPreview = promptPrioritySummary
-      ? `Priority order of inspirational references:\n${promptPrioritySummary}\n\nPrompt body:\n${fullPrompt}`
-      : fullPrompt;
-    setUsedPrompt(promptPreview);
+    setUsedPrompt(fullPrompt);
     setIsGenerating(true);
     try {
-      // Prompt personalizzato
-      const customPrompt = unifiedDescription;
-      // Prepara array di descrizioni e/o url per il backend
-      const inspiration_images = selectedImages.map(img => {
-        const desc = inspoDescriptions[img.id];
-        return desc && desc.trim() ? desc : img.src;
-      });
-      // Prompt finale che integra tutto
-      const finalPrompt = customPrompt;
       const resp = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -588,6 +646,15 @@ export default function Home() {
               <input
                 type="radio"
                 name="captionModel"
+                value="llava13b"
+                checked={captionModel === 'llava13b'}
+                onChange={() => setCaptionModel('llava13b')}
+              /> LLaVA-13B (equilibrato)
+            </label>
+            <label className="model-selector__option">
+              <input
+                type="radio"
+                name="captionModel"
                 value="blip2"
                 checked={captionModel === 'blip2'}
                 onChange={() => setCaptionModel('blip2')}
@@ -644,6 +711,7 @@ export default function Home() {
                       <AutoResizeTextarea
                         value={desc}
                         onChange={e => handleInspoChange(img.id, e.target.value)}
+                        onBlur={() => handleInspoBlur(img.id)}
                         placeholder={`Descrizione ispirazione ${priority}`}
                         className="form-textarea"
                       />
@@ -658,7 +726,7 @@ export default function Home() {
 
       {/* Sezione 4: Prompt unificato proposto (modificabile) */}
       <section className="panel panel-spaced">
-        <details>
+        <details open>
           <summary className="section-summary"><strong>4. Prompt unificato proposto (modificabile)</strong></summary>
           <div className="section-actions">
             <button
@@ -677,26 +745,37 @@ export default function Home() {
               <span className="spinner" style={{ width: 20, height: 20, border: '3px solid #ccc', borderTop: '3px solid #0070f3', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
             )}
           </div>
-          <AutoResizeTextarea
-            value={unifiedDescription}
-            onChange={e => setUnifiedDescription(e.target.value)}
-            placeholder="Descrizione unificata delle ispirazioni"
-            className="form-textarea form-textarea--prompt"
-          />
+          {isUnifiedDescriptionEditing ? (
+            <AutoResizeTextarea
+              value={unifiedDescription}
+              onChange={e => setUnifiedDescription(e.target.value)}
+              onBlur={handleUnifiedDescriptionBlur}
+              placeholder="Descrizione unificata delle ispirazioni"
+              className="form-textarea form-textarea--prompt"
+            />
+          ) : (
+            <button
+              type="button"
+              className={`prompt-editor-display${unifiedDescription.trim() ? '' : ' is-empty'}`}
+              onClick={() => setIsUnifiedDescriptionEditing(true)}
+            >
+              {unifiedDescription.trim() || 'Descrizione unificata delle ispirazioni'}
+            </button>
+          )}
         </details>
       </section>
 
-      {/* Sezione 5: Generazione immagine aspirazionale e confronto */}
+      {/* Sezione 5: Generazione immagine ispirazionale e confronto */}
       <section className="panel panel-spaced panel-generated">
-        <h2 className="section-title">5. Generazione immagine aspirazionale</h2>
+        <h2 className="section-title">5. Generazione immagine ispirazionale</h2>
         <div className="generation-toolbar">
           <button
             className="genera-btn"
             onClick={generateAspirational}
-            disabled={!canGenerate || isGeneratingDescriptions}
+            disabled={!canGenerate || isGeneratingUnifiedPrompt}
             type="button"
           >
-            {isGenerating ? 'Generazione in corso...' : 'Genera immagine aspirazionale'}
+            {isGenerating ? 'Generazione in corso...' : 'Genera immagine ispirazionale'}
           </button>
           {selectedImages.length > 0 && (
             <div className="desktop-only generation-strip">
@@ -722,19 +801,78 @@ export default function Home() {
             {userImage && <img src={userImage} alt="Reale" className="desktop-only" />}
           </div>
           <div className="generation-stage">
-            {(isGenerating || generatedImage) && <h3 className="generation-stage__label mobile-hidden">Destra: aspirazionale</h3>}
+            {(isGenerating || generatedImage) && <h3 className="generation-stage__label mobile-hidden">Destra: ispirazionale</h3>}
             <div className="generation-stage__content">
               {isGenerating ? (
                 <div className="generation-loading">
                   <span className="spinner" style={{ width: 48, height: 48, border: '6px solid #ccc', borderTop: '6px solid #0070f3', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
                 </div>
               ) : (
-                generatedImage && <img src={generatedImage} alt="Aspirazionale" className="generated-image" onClick={() => setPopupImg(generatedImage)} />
+                generatedImage && (
+                  <div className="generated-image-card">
+                    <div className="generated-image-actions">
+                      <button
+                        type="button"
+                        className="image-action-btn image-action-btn--left"
+                        onClick={saveCurrentGeneratedImage}
+                        disabled={isCurrentImageSaved}
+                        title={isCurrentImageSaved ? 'Gia salvata in galleria' : 'Salva in galleria'}
+                        aria-label={isCurrentImageSaved ? 'Immagine gia salvata in galleria' : 'Salva immagine in galleria'}
+                      >
+                        {isCurrentImageSaved ? '✓' : '＋'}
+                      </button>
+                      <button
+                        type="button"
+                        className="image-action-btn image-action-btn--right"
+                        onClick={() => downloadImage(generatedImage, `glowup-${Date.now()}.png`)}
+                        title="Salva sul computer"
+                        aria-label="Salva immagine sul computer"
+                      >
+                        💾
+                      </button>
+                    </div>
+                    <img src={generatedImage} alt="Ispirazionale" className="generated-image" onClick={() => setPopupImg(generatedImage)} />
+                  </div>
+                )
               )}
-              {/* Nessuna barra immagini qui, già sopra */}
             </div>
           </div>
         </div>
+        {savedGeneratedImages.length > 0 && (
+          <div className="generated-gallery">
+            <h3 className="generated-gallery__title">Galleria progressi</h3>
+            <div className="generated-gallery__grid">
+              {savedGeneratedImages.map((item, index) => (
+                <div key={item.id} className="generated-gallery__item">
+                  <button
+                    type="button"
+                    className="image-action-btn image-action-btn--left image-action-btn--danger"
+                    onClick={() => removeSavedGeneratedImage(item.id)}
+                    title="Rimuovi dalla galleria"
+                    aria-label="Rimuovi dalla galleria"
+                  >
+                    ×
+                  </button>
+                  <button
+                    type="button"
+                    className="image-action-btn image-action-btn--right"
+                    onClick={() => downloadImage(item.src, `glowup-gallery-${index + 1}.png`)}
+                    title="Salva sul computer"
+                    aria-label="Salva immagine sul computer"
+                  >
+                    💾
+                  </button>
+                  <img
+                    src={item.src}
+                    alt={`Progressione glowup ${index + 1}`}
+                    className="generated-gallery__image"
+                    onClick={() => setPopupImg(item.src)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {usedPrompt && (
           <details className="prompt-box">
             <summary className="prompt-box__summary">Prompt inviato</summary>

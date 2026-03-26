@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
+import { PROMPTS } from '../../../lib/prompts';
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_KEY
@@ -23,14 +24,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { prompt, image_data, inspiration_images } = body;
+    const { prompt, image_data } = body;
 
     if (!image_data) {
       return NextResponse.json({ error: 'Immagine mancante.' }, { status: 400 });
     }
 
     // Prompt glowup: aggiungi obiettivo di miglioramento estetico
-    const glowupInstruction = 'The goal is a glowup: the generated version must look much more beautiful, slim, and cool than the original, while keeping coherence with the original image and the inspirational references.';
+    const glowupInstruction = PROMPTS.generateImage.glowupInstruction;
     const fullPrompt = `${prompt?.trim() || ''}\n${glowupInstruction}`;
     const input = {
       prompt: fullPrompt,
@@ -43,7 +44,6 @@ export async function POST(request: NextRequest) {
     let output;
     try {
       output = await replicate.run('qwen/qwen-image-2-pro', { input });
-      const outAny = output as any;
     } catch (err: any) {
       return NextResponse.json({
         error: err?.message || 'Errore generazione Replicate.',
