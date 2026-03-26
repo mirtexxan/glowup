@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 
 // Textarea auto-resize per descrizioni ispirazionali
-function AutoResizeTextarea({ value, onChange, placeholder, style }: { value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder?: string; style?: React.CSSProperties }) {
+function AutoResizeTextarea({ value, onChange, placeholder, style, className }: { value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder?: string; style?: React.CSSProperties; className?: string }) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const ta = taRef.current;
@@ -19,6 +19,7 @@ function AutoResizeTextarea({ value, onChange, placeholder, style }: { value: st
       value={value}
       onChange={onChange}
       placeholder={placeholder}
+      className={className}
       style={{ ...style, resize: 'none', overflow: 'hidden' }}
     />
   );
@@ -26,6 +27,14 @@ function AutoResizeTextarea({ value, onChange, placeholder, style }: { value: st
 
 type PinterestImage = { id: number; src: string; title: string };
 type ImageSource = 'pexels' | 'unsplash';
+
+function orderImagesByPriority(images: PinterestImage[], orderedIds: number[]) {
+  const selectedImages = orderedIds
+    .map((id) => images.find((img) => img.id === id))
+    .filter((img): img is PinterestImage => Boolean(img));
+  const remainingImages = images.filter((img) => !orderedIds.includes(img.id));
+  return [...selectedImages, ...remainingImages];
+}
 
 export default function Home() {
   // Stato per webcam
@@ -91,7 +100,8 @@ export default function Home() {
   const [generatedImage, setGeneratedImage] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false); // loading per sezione 5
-  const [isGeneratingDescriptions, setIsGeneratingDescriptions] = useState(false); // loading per sezione 3
+  const [isGeneratingDescriptions, setIsGeneratingDescriptions] = useState(false); // loading captioning per sezione 3
+  const [isGeneratingUnifiedPrompt, setIsGeneratingUnifiedPrompt] = useState(false); // loading per sezione 4
   const [usedPrompt, setUsedPrompt] = useState<string>('');
   // Numero massimo di immagini ispirazionali selezionabili
   const MAX_INSPO = 5;
@@ -113,9 +123,16 @@ export default function Home() {
 
   // Memo per immagini selezionate (serve per useEffect sotto)
   const selectedImages = useMemo(
-    () => unsplashImages.filter((item) => selectedIds.includes(item.id)),
+    () => selectedIds
+      .map((id) => unsplashImages.find((item) => item.id === id))
+      .filter((item): item is PinterestImage => Boolean(item)),
     [selectedIds, unsplashImages]
   );
+
+  const getPriorityById = (id: number) => {
+    const index = selectedIds.indexOf(id);
+    return index >= 0 ? index + 1 : null;
+  };
 
   // Funzione per generare descrizione unificata
   // Fusione AI del prompt ispirazionale
@@ -124,7 +141,7 @@ export default function Home() {
       setUnifiedDescription('');
       return;
     }
-    setIsGeneratingDescriptions(true);
+    setIsGeneratingUnifiedPrompt(true);
     setError('');
     try {
       const resp = await fetch('/api/unify-prompt', {
@@ -143,7 +160,7 @@ export default function Home() {
       setError('Errore di rete nella fusione AI.');
       setUnifiedDescription('');
     } finally {
-      setIsGeneratingDescriptions(false);
+      setIsGeneratingUnifiedPrompt(false);
     }
   }
 
@@ -208,12 +225,29 @@ export default function Home() {
       newSelected = [...selectedIds, id];
     }
     setSelectedIds(newSelected);
+    setUnsplashImages((prev) => orderImagesByPriority(prev, newSelected));
     // Aggiorna le descrizioni solo per le immagini selezionate
     setInspoDescriptions((prev) => {
       const next: Record<number, string> = {};
       for (const id of newSelected) {
         next[id] = prev[id] || '';
       }
+      return next;
+    });
+  };
+
+  const moveSelectedPriority = (id: number, direction: 'up' | 'down') => {
+    setError('');
+    setGeneratedImage('');
+    setSelectedIds((prev) => {
+      const currentIndex = prev.indexOf(id);
+      if (currentIndex === -1) return prev;
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(currentIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      setUnsplashImages((currentImages) => orderImagesByPriority(currentImages, next));
       return next;
     });
   };
@@ -278,8 +312,13 @@ export default function Home() {
     if (selectedImages.length === 0) return;
     setError('');
     setIsGeneratingDescriptions(true);
-    await Promise.all(selectedImages.map(img => generateSingleInspoDescription(img.id, img.src)));
-    setIsGeneratingDescriptions(false);
+    try {
+      for (const img of selectedImages) {
+        await generateSingleInspoDescription(img.id, img.src);
+      }
+    } finally {
+      setIsGeneratingDescriptions(false);
+    }
   };
 
   const generateAspirational = async () => {
@@ -295,8 +334,17 @@ export default function Home() {
     }
     // Prompt effettivo inviato (con glowup)
     const glowupInstruction = 'The goal is a glowup: make the person look more fit, beautiful, and slim, while keeping coherence with the original image and the inspirational references.';
+    const promptPrioritySummary = selectedImages
+      .map((img, index) => {
+        const description = inspoDescriptions[img.id]?.trim();
+        return `${index + 1}. ${description || img.title || 'Inspirational reference'}`;
+      })
+      .join('\n');
     const fullPrompt = `${unifiedDescription?.trim() || ''}\n${glowupInstruction}`;
-    setUsedPrompt(fullPrompt);
+    const promptPreview = promptPrioritySummary
+      ? `Priority order of inspirational references:\n${promptPrioritySummary}\n\nPrompt body:\n${fullPrompt}`
+      : fullPrompt;
+    setUsedPrompt(promptPreview);
     setIsGenerating(true);
     try {
       // Prompt personalizzato
@@ -346,16 +394,16 @@ export default function Home() {
   // }, [userImage, selectedIds]);
 
   return (
-    <main>
+    <main className="page-main">
       <h1>Glowup - Costruire e Sorvegliare il Sé</h1>
-      <p style={{ marginBottom: '1rem' }}>
+      <p className="page-intro">
         Seleziona ispirazioni, carica una tua foto e genera il tuo glowup.
       </p>
 
       {/* Sezione 1: Ricerca immagini ispirazionali */}
       <section className="panel">
-        <div style={{ marginBottom: '0.5em' }}>
-          <label style={{ marginRight: '1em' }}>
+        <div className="source-switcher">
+          <label className="source-switcher__option">
             <input
               type="radio"
               name="imageSource"
@@ -365,7 +413,7 @@ export default function Home() {
             />{' '}
             Pexels
           </label>
-          <label>
+          <label className="source-switcher__option">
             <input
               type="radio"
               name="imageSource"
@@ -377,62 +425,86 @@ export default function Home() {
           </label>
         </div>
         <details open={true}>
-          <summary><strong>1. Ricerca immagini ispirazionali</strong></summary>
-          <form onSubmit={e => { e.preventDefault(); fetchUnsplashImages(); }} style={{ display: 'flex', gap: '8px', marginBottom: '1em' }}>
-            <input
-              type="text"
-              placeholder="Cerca ispirazione (es: street style, eleganza, ... )"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{ flex: 1, padding: '8px' }}
-            />
-            <input
-              type="number"
-              min={1}
-              max={30}
-              value={imagesCount}
-              onChange={e => setImagesCount(Number(e.target.value))}
-              style={{ width: '60px', padding: '8px' }}
-              title="Numero immagini"
-            />
-            <button type="submit" disabled={isLoadingImages || !searchQuery} className="genera-btn">
-              {isLoadingImages ? 'Caricamento...' : 'Cerca'}
-            </button>
-            <button type="button" className="genera-btn" style={{ marginLeft: 8 }} onClick={handleRemoveUnselected} disabled={unsplashImages.length === 0 || selectedIds.length === 0 || unsplashImages.length === selectedIds.length}>
-              Elimina immagini non selezionate
-            </button>
+          <summary className="section-summary"><strong>1. Ricerca immagini ispirazionali</strong></summary>
+          <form onSubmit={e => { e.preventDefault(); fetchUnsplashImages(); }} className="search-form">
+            <div className="search-input-row">
+              <input
+                type="text"
+                placeholder="Cerca ispirazione (es: street style, eleganza, ... )"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={imagesCount}
+                onChange={e => setImagesCount(Number(e.target.value))}
+                className="search-count-input"
+                title="Numero immagini"
+              />
+            </div>
+            <div className="search-btn-row">
+              <button type="submit" disabled={isLoadingImages || !searchQuery} className="genera-btn search-btn">
+                {isLoadingImages ? 'Caricamento...' : 'Cerca'}
+              </button>
+              <button type="button" className="genera-btn search-btn" onClick={handleRemoveUnselected} disabled={unsplashImages.length === 0 || selectedIds.length === 0 || unsplashImages.length === selectedIds.length}>
+                Elimina immagini non selezionate
+              </button>
+            </div>
           </form>
           {imagesError && <div className="alert">{imagesError}{imagesErrorDetail ? `: ${imagesErrorDetail}` : ''}</div>}
           <div className="grid pinterest-grid">
             {unsplashImages.map((img) => (
-              <div key={img.id} style={{ position: 'relative', border: selectedIds.includes(img.id) ? '4px solid #0070f3' : '2px solid #eee', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', boxShadow: selectedIds.includes(img.id) ? '0 0 0 2px #0070f3' : undefined }}>
+              <div key={img.id} className={`search-result-card${selectedIds.includes(img.id) ? ' is-selected' : ''}`}>
                 <img
                   src={img.src}
                   alt={img.title}
-                  style={{ objectFit: 'cover', objectPosition: 'center', width: '100%', height: '220px', display: 'block', background: '#fafafa' }}
+                  className="search-result-image"
                   onClick={() => setPopupImg(img.src)}
                 />
-                <button
-                  type="button"
-                  onClick={() => handleImageToggle(img.id)}
-                  style={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    background: selectedIds.includes(img.id) ? '#0070f3' : '#fff',
-                    color: selectedIds.includes(img.id) ? '#fff' : '#0070f3',
-                    border: '1px solid #0070f3',
-                    borderRadius: '50%',
-                    width: 28,
-                    height: 28,
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    zIndex: 2
-                  }}
-                  aria-label={selectedIds.includes(img.id) ? 'Deseleziona' : 'Seleziona'}
-                >
-                  {selectedIds.includes(img.id) ? '✓' : '+'}
-                </button>
+                {selectedIds.includes(img.id) ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleImageToggle(img.id)}
+                      className="search-result-toggle search-result-toggle--priority is-selected"
+                      aria-label={`Deseleziona immagine con priorita ${getPriorityById(img.id)}`}
+                    >
+                      {getPriorityById(img.id)}
+                    </button>
+                    <div className="search-result-reorder">
+                      <button
+                        type="button"
+                        className="search-result-move-btn"
+                        onClick={() => moveSelectedPriority(img.id, 'up')}
+                        disabled={getPriorityById(img.id) === 1}
+                        aria-label={`Alza priorita immagine ${getPriorityById(img.id)}`}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="search-result-move-btn"
+                        onClick={() => moveSelectedPriority(img.id, 'down')}
+                        disabled={getPriorityById(img.id) === selectedIds.length}
+                        aria-label={`Abbassa priorita immagine ${getPriorityById(img.id)}`}
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleImageToggle(img.id)}
+                    className="search-result-toggle"
+                    aria-label="Seleziona"
+                  >
+                    +
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -441,45 +513,31 @@ export default function Home() {
 
       {/* Popup immagine ingrandita globale */}
       {popupImg && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPopupImg(null)}>
-          <img src={popupImg} alt="Ingrandimento" style={{ maxWidth: '95vw', maxHeight: '95vh', height: '90vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 4px 32px #0008' }} />
+        <div className="image-popup" onClick={() => setPopupImg(null)}>
+          <img src={popupImg} alt="Ingrandimento" className="image-popup__image" />
         </div>
       )}
 
       {/* Sezione 2: Upload utente */}
-      <section className="panel" style={{ marginTop: '1rem', maxWidth: 400 }}>
+      <section className="panel panel-spaced panel-upload">
         <details open>
-          <summary style={{ cursor: 'pointer' }}><strong>2. Upload utente</strong></summary>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+          <summary className="section-summary"><strong>2. Upload utente</strong></summary>
+          <div className="upload-panel">
             {!userImage && !showWebcam && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: 12 }}>
-                <label htmlFor="user-upload-input" style={{ width: '100%' }}>
-                  <span
-                    className="genera-btn"
-                    style={{
-                      display: 'inline-block',
-                      width: '100%',
-                      textAlign: 'center',
-                      padding: '0.5rem 1rem',
-                      fontSize: '1rem',
-                      marginBottom: '0.7rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Scegli file
-                  </span>
+              <div className="upload-stack">
+                <label htmlFor="user-upload-input" className="genera-btn upload-btn" role="button" tabIndex={0}>
+                  Scegli file
                   <input
                     id="user-upload-input"
                     type="file"
                     accept="image/png, image/jpeg"
-                    style={{ display: 'none' }}
+                    className="hidden-input"
                     onChange={(event) => handleFileUpload(event.target.files?.[0])}
                   />
                 </label>
                 <button
                   type="button"
-                  className="genera-btn"
-                  style={{ width: '100%', padding: '0.5rem 1rem', fontSize: '1rem', marginBottom: '0.7rem' }}
+                  className="genera-btn upload-btn"
                   onClick={startWebcam}
                 >
                   📷 Scatta foto da webcam
@@ -487,10 +545,10 @@ export default function Home() {
               </div>
             )}
             {showWebcam && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                <video ref={videoRef} style={{ width: 320, height: 240, background: '#222', borderRadius: 8 }} autoPlay muted />
-                <canvas ref={canvasRef} style={{ display: 'none' }} />
-                <div style={{ display: 'flex', gap: 8 }}>
+              <div className="webcam-stack">
+                <video ref={videoRef} className="webcam-video" autoPlay muted />
+                <canvas ref={canvasRef} className="hidden-input" />
+                <div className="inline-actions">
                   <button type="button" className="genera-btn" onClick={captureWebcam}>Scatta</button>
                   <button type="button" className="genera-btn" onClick={closeWebcam}>Annulla</button>
                 </div>
@@ -501,10 +559,10 @@ export default function Home() {
                 <img
                   src={userImage}
                   alt="Immagine utente"
-                  style={{ marginTop: '0.5rem', maxWidth: '300px', borderRadius: '10px', display: 'block', cursor: 'pointer' }}
+                  className="user-preview-image"
                   onClick={() => { document.getElementById('user-upload-input')?.click(); }}
                 />
-                <button type="button" className="genera-btn" style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', fontSize: '1rem' }} onClick={() => { setUserImage(''); setUserFile(null); }}>Seleziona immagine diversa</button>
+                <button type="button" className="genera-btn upload-btn" onClick={() => { setUserImage(''); setUserFile(null); }}>Seleziona immagine diversa</button>
               </>
             )}
           </div>
@@ -512,21 +570,21 @@ export default function Home() {
       </section>
 
       {/* Sezione 3: Descrizioni immagini ispirazionali */}
-      <section className="panel" style={{ marginTop: '1rem' }}>
+      <section className="panel panel-spaced">
         <details open>
-          <summary style={{ cursor: 'pointer' }}><strong>3. Descrizioni immagini ispirazionali</strong></summary>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', gap: 8 }}>
+          <summary className="section-summary"><strong>3. Descrizioni immagini ispirazionali</strong></summary>
+          <div className="section-actions">
             <button type="button" className="genera-btn" onClick={generateInspoDescriptions} disabled={selectedImages.length === 0 || isGeneratingDescriptions || isGenerating}>
               Genera tutte le descrizioni
             </button>
-            {isGenerating && (
+            {isGeneratingDescriptions && (
               <span className="spinner" style={{ width: 24, height: 24, border: '3px solid #ccc', borderTop: '3px solid #0070f3', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
             )}
             <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
           </div>
           {/* Selettore modello captioning */}
-          <div style={{ marginBottom: 8 }}>
-            <label style={{ marginRight: 16 }}>
+          <div className="model-selector">
+            <label className="model-selector__option">
               <input
                 type="radio"
                 name="captionModel"
@@ -535,7 +593,7 @@ export default function Home() {
                 onChange={() => setCaptionModel('blip2')}
               /> BLIP-2 (veloce)
             </label>
-            <label>
+            <label className="model-selector__option">
               <input
                 type="radio"
                 name="captionModel"
@@ -549,44 +607,45 @@ export default function Home() {
           {selectedImages.map((img, idx) => {
             const open = !!openDescriptions[img.id];
             const desc = inspoDescriptions[img.id] || '';
+            const priority = idx + 1;
             // Stato icona: check se descrizione presente, x se vuota, spinner se loading
             let statusIcon = null;
             if (loadingDescId === img.id) {
               statusIcon = <span className="spinner" style={{ width: 18, height: 18, border: '2.5px solid #ccc', borderTop: '2.5px solid #0070f3', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite', marginRight: 4 }} />;
             } else if (desc.trim()) {
-              statusIcon = <span title="Descrizione pronta" style={{ color: 'green', fontSize: 18, marginRight: 4 }}>✔️</span>;
+              statusIcon = <span title="Descrizione pronta" className="status-icon status-icon--ok">✔️</span>;
             } else {
-              statusIcon = <span title="Descrizione mancante" style={{ color: 'red', fontSize: 18, marginRight: 4 }}>❌</span>;
+              statusIcon = <span title="Descrizione mancante" className="status-icon status-icon--error">❌</span>;
             }
             return (
-              <div key={img.id} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '8px', gap: 8 }}>
-                <div style={{ flex: 1 }}>
+              <div key={img.id} className="description-item">
+                <div className="description-item__body">
                   <div
-                    style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', background: open ? '#f7f7f7' : '#f0f0f0', borderRadius: 6, padding: open ? '4px 8px 0 8px' : '4px 8px', border: open ? '1.5px solid #0070f3' : '1.5px solid #e0e0e0', minHeight: 36 }}
+                    className={`description-item__header${open ? ' is-open' : ''}`}
                     onClick={() => setOpenDescriptions(prev => ({ ...prev, [img.id]: !prev[img.id] }))}
                   >
+                    <span className="description-item__priority" aria-label={`Priorita ${priority}`}>{priority}</span>
                     {statusIcon}
-                    <span style={{ flex: 1, color: desc.trim() ? '#222' : '#aaa', fontWeight: 500, fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {desc.trim() ? desc.slice(0, 40) + (desc.length > 40 ? '…' : '') : `Descrizione ispirazione ${idx + 1}`}
+                    <span className={`description-item__title${desc.trim() ? '' : ' is-empty'}`}>
+                      {desc.trim() ? desc.slice(0, 40) + (desc.length > 40 ? '…' : '') : `Descrizione ispirazione ${priority}`}
                     </span>
                     <button
                       type="button"
-                      className="genera-btn"
-                      style={{ minWidth: 32, padding: 0, marginLeft: 6, background: 'none', border: 'none', cursor: 'pointer' }}
+                      className="description-item__refresh"
                       onClick={e => { e.stopPropagation(); generateSingleInspoDescription(img.id, img.src); }}
                       disabled={isGeneratingDescriptions || isGenerating || loadingDescId !== null}
                       title="Genera descrizione"
                     >
-                      <span role="img" aria-label="aggiorna" style={{ fontSize: 18 }}>🔄</span>
+                      <span role="img" aria-label="aggiorna" className="description-item__refresh-icon">🔄</span>
                     </button>
                   </div>
                   {open && (
-                    <div style={{ marginTop: 4 }}>
+                    <div className="description-item__editor">
                       <AutoResizeTextarea
                         value={desc}
                         onChange={e => handleInspoChange(img.id, e.target.value)}
-                        placeholder={`Descrizione ispirazione ${idx + 1}`}
-                        style={{ width: '100%', padding: '8px', minHeight: 40, fontFamily: 'inherit', fontSize: '1rem', lineHeight: 1.4, marginRight: 0 }}
+                        placeholder={`Descrizione ispirazione ${priority}`}
+                        className="form-textarea"
                       />
                     </div>
                   )}
@@ -598,10 +657,10 @@ export default function Home() {
       </section>
 
       {/* Sezione 4: Prompt unificato proposto (modificabile) */}
-      <section className="panel" style={{ marginTop: '1rem' }}>
+      <section className="panel panel-spaced">
         <details>
-          <summary style={{ cursor: 'pointer' }}><strong>4. Prompt unificato proposto (modificabile)</strong></summary>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <summary className="section-summary"><strong>4. Prompt unificato proposto (modificabile)</strong></summary>
+          <div className="section-actions">
             <button
               type="button"
               className="genera-btn"
@@ -609,12 +668,12 @@ export default function Home() {
                 const descs = selectedImages.map(img => inspoDescriptions[img.id]).filter(Boolean);
                 generateUnifiedDescriptionAI(descs);
               }}
-              disabled={isGeneratingDescriptions || selectedImages.length === 0}
+              disabled={isGeneratingUnifiedPrompt || selectedImages.length === 0}
               title="Rigenera prompt unificato"
             >
               🔄 Rigenera prompt
             </button>
-            {isGeneratingDescriptions && (
+            {isGeneratingUnifiedPrompt && (
               <span className="spinner" style={{ width: 20, height: 20, border: '3px solid #ccc', borderTop: '3px solid #0070f3', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
             )}
           </div>
@@ -622,15 +681,15 @@ export default function Home() {
             value={unifiedDescription}
             onChange={e => setUnifiedDescription(e.target.value)}
             placeholder="Descrizione unificata delle ispirazioni"
-            style={{ width: '100%', padding: '8px', marginBottom: '8px', minHeight: 48, fontFamily: 'inherit', fontSize: '1rem', lineHeight: 1.4 }}
+            className="form-textarea form-textarea--prompt"
           />
         </details>
       </section>
 
       {/* Sezione 5: Generazione immagine aspirazionale e confronto */}
-      <section className="panel" style={{ marginTop: '1rem' }}>
-        <h2 style={{ marginBottom: '0.7rem', fontSize: '1.2rem' }}>5. Generazione immagine aspirazionale</h2>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.2rem', gap: 12, justifyContent: 'space-between' }}>
+      <section className="panel panel-spaced panel-generated">
+        <h2 className="section-title">5. Generazione immagine aspirazionale</h2>
+        <div className="generation-toolbar">
           <button
             className="genera-btn"
             onClick={generateAspirational}
@@ -640,54 +699,46 @@ export default function Home() {
             {isGenerating ? 'Generazione in corso...' : 'Genera immagine aspirazionale'}
           </button>
           {selectedImages.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {selectedImages.map(img => (
-                <img
-                  key={img.id}
-                  src={img.src}
-                  alt={img.title || 'ispirazione'}
-                  style={{
-                    width: 120,
-                    height: 120,
-                    objectFit: 'cover',
-                    borderRadius: 6,
-                    border: '1.5px solid #eee',
-                    background: '#fafafa',
-                    boxShadow: '0 1px 4px #0002',
-                    cursor: 'pointer',
-                    transition: 'box-shadow 0.2s',
-                  }}
-                  onClick={() => setPopupImg(img.src)}
-                />
+            <div className="desktop-only generation-strip">
+              {selectedImages.map((img, index) => (
+                <div key={img.id} className="generation-strip__item">
+                  <span className="generation-strip__priority" aria-label={`Priorita ${index + 1}`}>{index + 1}</span>
+                  <img
+                    src={img.src}
+                    alt={img.title || 'ispirazione'}
+                    className="generation-strip__image"
+                    onClick={() => setPopupImg(img.src)}
+                  />
+                </div>
               ))}
-                  {/* Popup rimosso: ora è globale sopra il main */}
             </div>
           )}
         </div>
         {error && <div className="alert">{error}</div>}
-        <div className="split">
+        <div className="split generation-split">
           <div>
-            {userImage && <h3>Sinistra: reale</h3>}
-            {userImage && <img src={userImage} alt="Reale" />}
+            {/* Mostra immagine originale solo su desktop */}
+            {userImage && <h3 className="desktop-only generation-stage__label">Sinistra: reale</h3>}
+            {userImage && <img src={userImage} alt="Reale" className="desktop-only" />}
           </div>
-          <div style={{ position: 'relative' }}>
-            {(isGenerating || generatedImage) && <h3>Destra: aspirazionale</h3>}
-            <div style={{ position: 'relative', width: '100%' }}>
+          <div className="generation-stage">
+            {(isGenerating || generatedImage) && <h3 className="generation-stage__label mobile-hidden">Destra: aspirazionale</h3>}
+            <div className="generation-stage__content">
               {isGenerating ? (
-                <div style={{ width: '100%', minHeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f3f3', borderRadius: 12 }}>
+                <div className="generation-loading">
                   <span className="spinner" style={{ width: 48, height: 48, border: '6px solid #ccc', borderTop: '6px solid #0070f3', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
                 </div>
               ) : (
-                generatedImage && <img src={generatedImage} alt="Aspirazionale" style={{ display: 'block', width: '100%' }} />
+                generatedImage && <img src={generatedImage} alt="Aspirazionale" className="generated-image" onClick={() => setPopupImg(generatedImage)} />
               )}
               {/* Nessuna barra immagini qui, già sopra */}
             </div>
           </div>
         </div>
         {usedPrompt && (
-          <details style={{marginTop: '1em', background: '#f7f7f7', padding: '0.5em 1em', borderRadius: '8px'}}>
-            <summary style={{fontWeight: 600, cursor: 'pointer'}}>Prompt inviato</summary>
-            <pre style={{whiteSpace: 'pre-wrap', wordBreak: 'break-all', marginTop: 8}}>{usedPrompt}</pre>
+          <details className="prompt-box">
+            <summary className="prompt-box__summary">Prompt inviato</summary>
+            <pre className="prompt-box__content">{usedPrompt}</pre>
           </details>
         )}
         {generatedImage && (
