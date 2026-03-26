@@ -19,7 +19,7 @@ Glowup è una webapp didattica che permette di:
 
 1. **Clona il repository**
 	 ```sh
-	 git clone https://github.com/mirtexxan/glowup-costruire-e-sorvegliare-il-se.git
+	 git clone https://github.com/mirtexxan/glowup.git
 	 cd glowup-costruire-e-sorvegliare-il-se
 	 ```
 

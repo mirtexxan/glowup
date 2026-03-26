@@ -1,3 +1,55 @@
+/* Responsive styles for mobile */
+@media (max-width: 700px) {
+  main {
+    width: 100vw;
+    margin: 0.5rem 0;
+    padding: 0 0.5rem;
+  }
+  h1 {
+    font-size: 1.25rem;
+    text-align: center;
+  }
+  h2 {
+    font-size: 1rem;
+    text-align: center;
+  }
+  .panel {
+    padding: 0.7rem 0.5rem;
+    border-radius: 10px;
+  }
+  .split {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .split img {
+    min-height: 180px;
+    max-height: 250px;
+  }
+  .pinterest-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  .image-card img {
+    height: 100px;
+  }
+  .genera-btn {
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.7rem 0.5rem;
+    margin-top: 0.7rem;
+  }
+  .output-text {
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  .alert {
+    font-size: 0.95rem;
+    text-align: center;
+  }
+  input[type='file'] {
+    width: 100%;
+  }
+}
 * {
   margin: 0;
   padding: 0;
