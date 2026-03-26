@@ -1,94 +1,119 @@
 
-# Glowup - Costruire e Sorvegliare il Sé
+# GlowApp
 
-Webapp Next.js per esplorare l'identità visiva tramite moodboard AI e generazione di immagini aspirazionali.
+GlowApp e una web app Next.js per costruire una moodboard visiva, descriverla con modelli AI, sintetizzarla in un prompt unico e generare un'immagine ispirazionale a partire da una foto reale.
 
-## Descrizione del progetto
+## Produzione
 
-Glowup è una webapp didattica che permette di:
+L'istanza pubblica attualmente disponibile vive su Vercel:
 
-- Cercare immagini ispirazionali (Unsplash/Pexels) tramite parola chiave
-- Selezionare fino a 5 immagini per la moodboard
-- Generare automaticamente (o modificare manualmente) descrizioni dettagliate delle immagini selezionate tramite AI (BLIP-2/BLIP-3)
-- Unificare le descrizioni in un unico prompt visivo (OpenAI)
-- Caricare una propria foto o scattarla da webcam
-- Generare una versione "aspirazionale" della propria immagine tramite AI (Replicate)
-- Visualizzare a confronto la foto reale e quella generata
+- https://glowapp-mm.vercel.app/
 
-## Installazione e setup
+Al momento questo e l'unico deploy pubblico ufficiale.
 
-1. **Clona il repository**
-	 ```sh
-	 git clone https://github.com/mirtexxan/glowup.git
-	 cd glowup-costruire-e-sorvegliare-il-se
-	 ```
+## Cosa fa
 
-2. **Installa le dipendenze**
-	 ```sh
-	 npm install
-	 ```
+GlowApp permette di:
 
-3. **Configura le variabili d’ambiente**
-	 - Copia `.env.example` in `.env.local` e inserisci le tue API key:
-		 ```sh
-		 cp .env.example .env.local
-		 # poi modifica .env.local con le tue chiavi
-		 ```
-	 - Servono chiavi per:
-		 - Replicate (image generation/captioning)
-		 - Unsplash (image search)
-		 - Pexels (opzionale, image search)
-		 - OpenAI (prompt unification)
-
-4. **Avvia il server di sviluppo**
-	 ```sh
-	 npm run dev
-	 ```
-	 L’app sarà disponibile su [http://localhost:3000](http://localhost:3000)
-
-## Deploy pubblico (es. per la scuola)
-
-Puoi pubblicare l’app su [Vercel](https://vercel.com/) o [Netlify](https://www.netlify.com/) gratuitamente:
-
-1. Crea un account e importa il repository
-2. Imposta le stesse variabili d’ambiente del file `.env.example`
-3. Avvia il deploy: riceverai un link pubblico da condividere
-
-## Struttura del codice
-
-- **Frontend**: React + Next.js (app/page.tsx)
-	- Ricerca immagini, selezione, upload, webcam, descrizioni, prompt, generazione, confronto
-	- UI responsive, auto-resize textarea, popup immagini, spinner, radio per modello AI
-- **Backend/API**: Next.js API routes (`app/api/`)
-	- `/api/unsplash-search`: ricerca immagini Unsplash/Pexels
-	- `/api/img2text`: descrizione automatica immagini (BLIP-2/BLIP-3 via Replicate)
-	- `/api/unify-prompt`: unificazione descrizioni in inglese (OpenAI)
-	- `/api/generate`: generazione immagine aspirazionale (Replicate)
-- **Gestione chiavi/API**: tutte le chiavi sono lette da variabili d’ambiente (`.env.local`)
+- cercare immagini ispirazionali da provider esterni;
+- selezionare fino a 5 riferimenti in ordine di priorita;
+- generare o rifinire manualmente le descrizioni delle immagini selezionate;
+- fondere le descrizioni in un prompt unico, coerente e focalizzato su una sola persona;
+- caricare una foto locale oppure acquisirla da webcam;
+- generare una nuova immagine ispirazionale con Replicate;
+- salvare piu varianti nella galleria progressi e scaricarle localmente.
 
 ## Requisiti
 
-- Node.js 18+
-- Account Replicate, Unsplash, OpenAI (gratuito o a consumo)
+- Node.js 18 o superiore
+- npm
+- chiavi API valide per i servizi esterni usati dall'app
 
-## Personalizzazione avanzata
+## Variabili d'ambiente
 
-- Modifica i prompt AI nei file in `app/api/`
-- Cambia i modelli Replicate/OpenAI a piacere
-- Personalizza la UI in `app/page.tsx` e `app/globals.css`
+Copia `.env.example` in `.env.local` e compila i valori richiesti.
 
-## FAQ
+```powershell
+Copy-Item .env.example .env.local
+```
 
-**Non ho le API key, posso provare l’app?**
-> Puoi usare le chiavi gratuite di Unsplash e OpenAI (con limiti). Replicate richiede carta di credito anche per test.
+Variabili richieste:
 
-**Posso usare l’app in una rete scolastica?**
-> Sì, basta che il computer abbia accesso a internet e le API key siano valide.
+- `REPLICATE_API_KEY`: captioning e generazione immagine
+- `UNSPLASH_ACCESS_KEY`: ricerca immagini Unsplash
+- `PEXELS_API_KEY`: ricerca immagini Pexels
+- `OPENAI_API_KEY`: unificazione del prompt
 
-**Come mostro l’app agli studenti?**
-> Avvia in locale (`npm run dev`) e proietta il browser, oppure pubblica su Vercel/Netlify e condividi il link.
+Se una chiave manca, la parte corrispondente del flusso non funzionera.
 
----
-© 2026 Glowup - Costruire e Sorvegliare il Sé
+## Installazione locale
 
-© 2026 – Progetto MVP per esplorazione identità visiva con AI
+Se il progetto e gia presente sul tuo disco, entra direttamente nella cartella. Se devi clonarlo, usa l'URL del repository che stai effettivamente usando.
+
+```powershell
+npm install
+```
+
+Avvio in sviluppo:
+
+```powershell
+npm run dev
+```
+
+L'app sara disponibile su `http://localhost:3000`.
+
+Build di produzione locale:
+
+```powershell
+npm run build
+npm run start
+```
+
+## Come si usa
+
+1. Apri GlowApp in locale oppure su Vercel.
+2. Cerca immagini ispirazionali usando una query testuale.
+3. Seleziona le immagini da usare e ordinale per priorita.
+4. Genera tutte le descrizioni oppure modificale manualmente.
+5. Controlla il prompt unificato e, se serve, rigeneralo o ritoccalo.
+6. Carica la tua immagine oppure usa la webcam.
+7. Premi `Genera immagine ispirazionale`.
+8. Salva il risultato nella galleria progressi o scaricalo sul computer.
+
+## Deploy
+
+Il progetto e pensato per Vercel e oggi il deploy pubblico esiste solo li.
+
+Per pubblicarne una copia:
+
+1. importa il repository in Vercel;
+2. configura le stesse variabili d'ambiente presenti in `.env.local`;
+3. esegui il deploy;
+4. verifica che le API route funzionino anche nell'ambiente cloud.
+
+## Stack tecnico
+
+- Next.js App Router
+- React 18
+- TypeScript
+- API route server-side in Next.js
+- OpenAI per l'unificazione dei prompt
+- Replicate per captioning e image generation
+
+## Architettura
+
+La pagina principale e stata refactorata in componenti, hook, tipi e utility dedicate.
+
+Per una spiegazione completa dell'architettura attuale vedi:
+
+- [architecture.md](architecture.md)
+
+## Note operative
+
+- la webcam richiede permessi browser e un device non occupato da altre applicazioni;
+- la generazione finale dipende dalla disponibilita dei provider esterni;
+- i prompt configurabili sono centralizzati in `lib/prompts.ts`.
+
+## Licenza e note
+
+Repository applicativo interno / progetto sperimentale.
