@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     }
     // Chiamata a modello AI (es: OpenAI, Replicate, ecc.)
     // Qui esempio con OpenAI API (sostituisci con la tua chiave e modello)
-    const prompt = `Unify these descriptions into a single prompt, maintaining consistency and richness of visual details. The result must be a visual description ready for image generation, without superfluous words, without interpretations, without comments—only objective, visual details. It must always refer to ONE subject only. Write in English:\n\n${descriptions.map((d, i) => `${i+1}. ${d}`).join('\n')}`;
+    const prompt = `Unify these descriptions into a single prompt, maintaining consistency and richness of visual details. The result must be a visual description ready for image generation, without superfluous words, without interpretations, without comments—only objective, visual details. It must always refer to ONE subject only. If the descriptions contain multiple subjects or conflicting poses, use the FIRST description as the main reference for the subject and pose. Then add only the missing visual details from the second, third, and subsequent descriptions, as long as they are compatible with the first subject and pose. Do not average poses. Do not describe multiple people. Write in English:\n\n${descriptions.map((d, i) => `${i+1}. ${d}`).join('\n')}`;
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: 'gpt-4',
         messages: [
-          { role: 'system', content: 'You are an assistant that writes visual prompts for image generation in English. The prompt must be only an objective visual description, without superfluous words, without interpretations, without comments.' },
+          { role: 'system', content: 'You are an assistant that writes visual prompts for image generation in English. The prompt must be only an objective visual description, without superfluous words, without interpretations, without comments. If multiple descriptions mention different subjects or poses, keep one subject only, preserve the pose and main body arrangement from the first description, and merge only compatible missing details from the later descriptions.' },
           { role: 'user', content: prompt }
         ],
         max_tokens: 600,
