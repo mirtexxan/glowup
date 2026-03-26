@@ -127,6 +127,8 @@ export default function Home() {
   const [isUnifiedDescriptionEditing, setIsUnifiedDescriptionEditing] = useState(false);
   const shouldRefreshUnifiedPromptRef = useRef(false);
   const suppressUnifiedPromptRefreshRef = useRef(false);
+  const unifiedPromptAbortControllerRef = useRef<AbortController | null>(null);
+  const unifiedPromptRequestIdRef = useRef(0);
 
   // Memo per immagini selezionate (serve per useEffect sotto)
   const selectedImages = useMemo(
@@ -144,19 +146,34 @@ export default function Home() {
   // Funzione per generare descrizione unificata
   // Fusione AI del prompt ispirazionale
   async function generateUnifiedDescriptionAI(descriptions: string[]) {
+    unifiedPromptRequestIdRef.current += 1;
+    const requestId = unifiedPromptRequestIdRef.current;
+    unifiedPromptAbortControllerRef.current?.abort();
+
     if (descriptions.length === 0) {
+      unifiedPromptAbortControllerRef.current = null;
+      setIsGeneratingUnifiedPrompt(false);
       setUnifiedDescription('');
       setIsUnifiedDescriptionEditing(false);
       return;
     }
+
+    const abortController = new AbortController();
+    unifiedPromptAbortControllerRef.current = abortController;
     setIsGeneratingUnifiedPrompt(true);
     setError('');
     try {
       const resp = await fetch('/api/unify-prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ descriptions })
+        body: JSON.stringify({ descriptions }),
+        signal: abortController.signal,
       });
+
+      if (requestId !== unifiedPromptRequestIdRef.current) {
+        return;
+      }
+
       const data = await resp.json();
       if (!resp.ok) {
         setError(data.error || 'Errore AI');
@@ -167,11 +184,20 @@ export default function Home() {
         setIsUnifiedDescriptionEditing(false);
       }
     } catch (e: any) {
+      if (e?.name === 'AbortError') {
+        return;
+      }
+      if (requestId !== unifiedPromptRequestIdRef.current) {
+        return;
+      }
       setError('Errore di rete nella fusione AI.');
       setUnifiedDescription('');
       setIsUnifiedDescriptionEditing(false);
     } finally {
-      setIsGeneratingUnifiedPrompt(false);
+      if (requestId === unifiedPromptRequestIdRef.current) {
+        unifiedPromptAbortControllerRef.current = null;
+        setIsGeneratingUnifiedPrompt(false);
+      }
     }
   }
 
@@ -455,7 +481,7 @@ export default function Home() {
     <main className="page-main">
       <h1>Glowup - Costruire e Sorvegliare il Sé</h1>
       <p className="page-intro">
-        Seleziona ispirazioni, carica una tua foto e genera il tuo glowup.
+        Scegli le immagini ispirazionali in ordine di priorita, carica la tua foto e genera il risultato finale.
       </p>
 
       {/* Sezione 1: Ricerca immagini ispirazionali */}
@@ -794,8 +820,34 @@ export default function Home() {
           )}
         </div>
         {error && <div className="alert">{error}</div>}
+        {(userImage || selectedImages.length > 0) && (
+          <div className="mobile-only generation-mobile-strip">
+            {userImage && (
+              <div className="generation-strip__item generation-strip__item--original">
+                <span className="generation-strip__priority" aria-label="Immagine reale">R</span>
+                <img
+                  src={userImage}
+                  alt="Reale"
+                  className="generation-strip__image"
+                  onClick={() => setPopupImg(userImage)}
+                />
+              </div>
+            )}
+            {selectedImages.map((img, index) => (
+              <div key={img.id} className="generation-strip__item">
+                <span className="generation-strip__priority" aria-label={`Priorita ${index + 1}`}>{index + 1}</span>
+                <img
+                  src={img.src}
+                  alt={img.title || 'ispirazione'}
+                  className="generation-strip__image"
+                  onClick={() => setPopupImg(img.src)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
         <div className="split generation-split">
-          <div>
+          <div className="generation-split__source desktop-only">
             {/* Mostra immagine originale solo su desktop */}
             {userImage && <h3 className="desktop-only generation-stage__label">Sinistra: reale</h3>}
             {userImage && <img src={userImage} alt="Reale" className="desktop-only" />}

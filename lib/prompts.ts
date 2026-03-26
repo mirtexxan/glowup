@@ -38,8 +38,16 @@ Only exclude elements that would force the scene to depict more than one person 
 Write only the final visual prompt in English.`,
   },
   img2text: {
-    llava13bPrompt: `Describe the image, focusing on looks, makeup, clothes, styling, and visual information.`,
-    blip3Question: `Provide a detailed description of the visual appearance, colors, accessories, lighting, clothes, makeup, and styling details visible in the image.`,
+    llava13bPrompt: `Describe the image, focusing on looks, clothes, styling, accessories, colors, and visual information.
+
+Mention makeup only if it is clearly relevant and visible.
+
+If the subject is a man, do not mention makeup.`,
+    blip3Question: `Provide a detailed description of the visual appearance, colors, accessories, lighting, clothes, and styling details visible in the image.
+
+Mention makeup only if it is clearly relevant and visible.
+
+If the subject is a man, do not mention makeup.`,
     blip3SystemPrompt: `A chat between a curious user and an artificial intelligence assistant.
 The assistant describes the visual content of images in detail.`,
   },
