@@ -30,7 +30,15 @@ export async function POST(req: NextRequest) {
     });
     if (!openaiRes.ok) {
       const err = await openaiRes.text();
-      return NextResponse.json({ error: 'Errore AI', detail: err }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: 'Errore AI',
+          status: openaiRes.status,
+          statusText: openaiRes.statusText,
+          detail: err,
+        },
+        { status: 500 }
+      );
     }
     const data = await openaiRes.json();
     const aiPrompt = data.choices?.[0]?.message?.content?.trim() || '';

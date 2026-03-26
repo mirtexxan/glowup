@@ -94,6 +94,7 @@ export default function Home() {
         isGeneratingUnifiedPrompt={studio.isGeneratingUnifiedPrompt}
         canRegenerate={studio.selectedImages.length > 1}
         unifiedDescription={studio.unifiedDescription}
+        error={studio.unifiedPromptError}
         isUnifiedDescriptionEditing={studio.isUnifiedDescriptionEditing}
         onRegenerate={studio.regenerateUnifiedDescription}
         onUnifiedDescriptionChange={studio.setUnifiedDescription}

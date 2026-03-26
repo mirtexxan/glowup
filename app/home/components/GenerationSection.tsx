@@ -101,12 +101,12 @@ export function GenerationSection({
       )}
       <div className="split generation-split">
         <div className="generation-split__source desktop-only">
-          {userImage && <h3 className="desktop-only generation-stage__label">Sinistra: reale</h3>}
+          {userImage && <h3 className="generation-stage__label">Sinistra: reale</h3>}
           {userImage && (
             <div className="generation-source-card">
-              <img src={userImage} alt="Reale" className="desktop-only" />
+              <img src={userImage} alt="Reale" />
               {selectedImages.length > 0 && (
-                <div className="generation-strip generation-strip--overlay desktop-only">
+                <div className="generation-strip generation-strip--overlay">
                   {selectedImages.map((img, index) => (
                     <div key={img.id} className="generation-strip__item generation-strip__item--overlay">
                       <span className="generation-strip__priority" aria-label={`Priorita ${index + 1}`}>{index + 1}</span>
@@ -119,7 +119,7 @@ export function GenerationSection({
           )}
         </div>
         <div className="generation-stage">
-          {(isGenerating || generatedImage) && <h3 className="generation-stage__label mobile-hidden">Destra: ispirazionale</h3>}
+          {(isGenerating || generatedImage) && <h3 className="generation-stage__label desktop-only">Destra: ispirazionale</h3>}
           <div className="generation-stage__content">
             {isGenerating ? (
               <div className="generation-loading">

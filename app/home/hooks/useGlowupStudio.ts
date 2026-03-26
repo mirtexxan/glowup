@@ -28,6 +28,7 @@ export function useGlowupStudio() {
   const [savedGeneratedImages, setSavedGeneratedImages] = useState<SavedGeneratedImage[]>([]);
   const [error, setError] = useState('');
   const [descriptionsError, setDescriptionsError] = useState('');
+  const [unifiedPromptError, setUnifiedPromptError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingDescriptions, setIsGeneratingDescriptions] = useState(false);
   const [isGeneratingUnifiedPrompt, setIsGeneratingUnifiedPrompt] = useState(false);
@@ -115,7 +116,7 @@ export function useGlowupStudio() {
     const abortController = new AbortController();
     unifiedPromptAbortControllerRef.current = abortController;
     setIsGeneratingUnifiedPrompt(true);
-    setError('');
+    setUnifiedPromptError('');
 
     try {
       const response = await fetch('/api/unify-prompt', {
@@ -129,13 +130,32 @@ export function useGlowupStudio() {
         return;
       }
 
-      const data = await response.json();
+      const rawResponse = await response.text();
+      let data: any = null;
+      try {
+        data = rawResponse ? JSON.parse(rawResponse) : null;
+      } catch {
+        data = null;
+      }
+
       if (!response.ok) {
-        setError(data.error || 'Errore AI');
+        const debugParts = [data?.error || 'Errore AI'];
+        if (data?.status || response.status) {
+          debugParts.push(`Status: ${data?.status || response.status}`);
+        }
+        if (data?.statusText) {
+          debugParts.push(`Status text: ${data.statusText}`);
+        }
+        if (data?.detail) {
+          debugParts.push(`Detail: ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail, null, 2)}`);
+        } else if (rawResponse && !data) {
+          debugParts.push(`Raw response: ${rawResponse}`);
+        }
+        setUnifiedPromptError(debugParts.join('\n'));
         setUnifiedDescription('');
         setIsUnifiedDescriptionEditing(false);
       } else {
-        setUnifiedDescription(data.prompt || '');
+        setUnifiedDescription(data?.prompt || '');
         setIsUnifiedDescriptionEditing(false);
       }
     } catch (e: any) {
@@ -145,7 +165,7 @@ export function useGlowupStudio() {
       if (requestId !== unifiedPromptRequestIdRef.current) {
         return;
       }
-      setError('Errore di rete nella fusione AI.');
+      setUnifiedPromptError('Errore di rete nella fusione AI.');
       setUnifiedDescription('');
       setIsUnifiedDescriptionEditing(false);
     } finally {
@@ -522,6 +542,7 @@ export function useGlowupStudio() {
     savedGeneratedImages,
     error,
     descriptionsError,
+    unifiedPromptError,
     isGenerating,
     isGeneratingDescriptions,
     isGeneratingUnifiedPrompt,

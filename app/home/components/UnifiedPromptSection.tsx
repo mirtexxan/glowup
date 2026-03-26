@@ -6,6 +6,7 @@ type UnifiedPromptSectionProps = {
   isGeneratingUnifiedPrompt: boolean;
   canRegenerate: boolean;
   unifiedDescription: string;
+  error: string;
   isUnifiedDescriptionEditing: boolean;
   onRegenerate: () => void;
   onUnifiedDescriptionChange: (value: string) => void;
@@ -17,6 +18,7 @@ export function UnifiedPromptSection({
   isGeneratingUnifiedPrompt,
   canRegenerate,
   unifiedDescription,
+  error,
   isUnifiedDescriptionEditing,
   onRegenerate,
   onUnifiedDescriptionChange,
@@ -61,6 +63,7 @@ export function UnifiedPromptSection({
             {unifiedDescription.trim() || 'Descrizione unificata delle ispirazioni'}
           </button>
         )}
+        {error && <div className="alert">{error}</div>}
       </details>
     </section>
   );

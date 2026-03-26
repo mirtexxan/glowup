@@ -90,12 +90,12 @@ export function SearchSection({
             </label>
           </div>
           <div className="search-btn-row">
-            <button type="submit" disabled={isLoadingImages || !searchQuery} className="genera-btn search-btn">
+            <button type="submit" disabled={isLoadingImages || !searchQuery} className="genera-btn">
               {isLoadingImages ? 'Caricamento...' : 'Cerca'}
             </button>
             <button
               type="button"
-              className="genera-btn search-btn"
+              className="genera-btn"
               onClick={onRemoveUnselected}
               disabled={unsplashImages.length === 0 || selectedIds.length === 0 || unsplashImages.length === selectedIds.length}
             >

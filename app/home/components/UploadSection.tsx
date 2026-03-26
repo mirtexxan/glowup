@@ -64,13 +64,6 @@ export function UploadSection({
           )}
           {userImage && (
             <>
-              <button
-                type="button"
-                className="genera-btn upload-btn"
-                onClick={() => { document.getElementById('user-upload-input')?.click(); }}
-              >
-                Seleziona immagine diversa
-              </button>
               <div
                 className="user-preview-card"
                 onClick={() => { document.getElementById('user-upload-input')?.click(); }}
@@ -88,6 +81,15 @@ export function UploadSection({
                   alt="Immagine utente"
                   className="user-preview-image"
                 />
+                <button
+                  type="button"
+                  className="user-preview-remove"
+                  onClick={(event) => { event.stopPropagation(); onResetUserImage(); }}
+                  aria-label="Rimuovi immagine utente"
+                  title="Rimuovi immagine utente"
+                >
+                  ×
+                </button>
                 <button
                   type="button"
                   className="user-preview-zoom"
