@@ -43,30 +43,11 @@ export function SearchSection({
 }: SearchSectionProps) {
   return (
     <section className="panel">
-      <div className="source-switcher">
-        <label className="source-switcher__option">
-          <input
-            type="radio"
-            name="imageSource"
-            value="pexels"
-            checked={imageSource === 'pexels'}
-            onChange={() => onImageSourceChange('pexels')}
-          />{' '}
-          Pexels
-        </label>
-        <label className="source-switcher__option">
-          <input
-            type="radio"
-            name="imageSource"
-            value="unsplash"
-            checked={imageSource === 'unsplash'}
-            onChange={() => onImageSourceChange('unsplash')}
-          />{' '}
-          Unsplash
-        </label>
-      </div>
       <details open>
-        <summary className="section-summary"><strong>1. Ricerca immagini ispirazionali</strong></summary>
+        <summary className="section-summary">
+          <strong>1. Crea la tua Moodboard</strong>
+          <span className="section-summary__subtitle">Ordina le tue ispirazioni dalla piu alla meno importante</span>
+        </summary>
         <form onSubmit={(event) => { event.preventDefault(); onSearch(); }} className="search-form">
           <div className="search-input-row">
             <input
@@ -86,6 +67,28 @@ export function SearchSection({
               title="Numero immagini"
             />
           </div>
+          <div className="source-switcher source-switcher--inside">
+            <label className="source-switcher__option">
+              <input
+                type="radio"
+                name="imageSource"
+                value="pexels"
+                checked={imageSource === 'pexels'}
+                onChange={() => onImageSourceChange('pexels')}
+              />{' '}
+              Pexels
+            </label>
+            <label className="source-switcher__option">
+              <input
+                type="radio"
+                name="imageSource"
+                value="unsplash"
+                checked={imageSource === 'unsplash'}
+                onChange={() => onImageSourceChange('unsplash')}
+              />{' '}
+              Unsplash
+            </label>
+          </div>
           <div className="search-btn-row">
             <button type="submit" disabled={isLoadingImages || !searchQuery} className="genera-btn search-btn">
               {isLoadingImages ? 'Caricamento...' : 'Cerca'}
@@ -96,7 +99,7 @@ export function SearchSection({
               onClick={onRemoveUnselected}
               disabled={unsplashImages.length === 0 || selectedIds.length === 0 || unsplashImages.length === selectedIds.length}
             >
-              Elimina immagini non selezionate
+              Rimuovi non selezionate
             </button>
           </div>
         </form>

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'GlowApp | Costruire e sorvegliare il Se',
+  title: 'GlowApp v1.0 | Costruire e Sorvegliare il Se',
   description: 'Web app per costruire una moodboard visiva, unificare descrizioni AI e generare un risultato ispirazionale.',
 };
 

@@ -7,6 +7,7 @@ type DescriptionsSectionProps = {
   selectedImages: PinterestImage[];
   openDescriptions: Record<number, boolean>;
   inspoDescriptions: Record<number, string>;
+  error: string;
   loadingDescId: number | null;
   isGeneratingDescriptions: boolean;
   isGenerating: boolean;
@@ -24,6 +25,7 @@ export function DescriptionsSection({
   selectedImages,
   openDescriptions,
   inspoDescriptions,
+  error,
   loadingDescId,
   isGeneratingDescriptions,
   isGenerating,
@@ -39,7 +41,10 @@ export function DescriptionsSection({
   return (
     <section className="panel panel-spaced">
       <details open>
-        <summary className="section-summary"><strong>3. Descrizioni immagini ispirazionali</strong></summary>
+        <summary className="section-summary">
+          <strong>3. Genera le descrizioni</strong>
+          <span className="section-summary__subtitle">Puoi modificarle o rigenerarle se non ti convincono</span>
+        </summary>
         <div className="section-actions">
           <button
             type="button"
@@ -123,6 +128,7 @@ export function DescriptionsSection({
             </div>
           );
         })}
+        {error && <div className="alert">{error}</div>}
       </details>
     </section>
   );

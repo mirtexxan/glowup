@@ -43,32 +43,35 @@ export function GenerationSection({
 }: GenerationSectionProps) {
   return (
     <section className="panel panel-spaced panel-generated">
-      <h2 className="section-title">5. Generazione immagine ispirazionale</h2>
-      <div className="model-selector">
-        <label className="model-selector__option">
-          <input
-            type="radio"
-            name="generationModel"
-            value="replicate-qwen"
-            checked={generationModel === 'replicate-qwen'}
-            onChange={() => onGenerationModelChange('replicate-qwen')}
-          /> Qwen via Replicate
-        </label>
-        <label className="model-selector__option">
-          <input
-            type="radio"
-            name="generationModel"
-            value="openai-gpt-image-1"
-            checked={generationModel === 'openai-gpt-image-1'}
-            onChange={() => onGenerationModelChange('openai-gpt-image-1')}
-          /> GPT-Image-1 via OpenAI
-        </label>
-      </div>
+      <details open>
+        <summary className="section-summary"><strong>5. Genera il tuo Glowup!</strong></summary>
       <div className="generation-toolbar">
-        <button className="genera-btn" onClick={onGenerate} disabled={!canGenerate || isGeneratingUnifiedPrompt} type="button">
-          {isGenerating ? 'Generazione in corso...' : 'Genera immagine ispirazionale'}
-        </button>
-        {selectedImages.length > 0 && (
+        <div className="generation-controls">
+          <button className="genera-btn" onClick={onGenerate} disabled={!canGenerate || isGeneratingUnifiedPrompt} type="button">
+            {isGenerating ? 'Generazione in corso...' : 'Genera immagine ispirazionale'}
+          </button>
+          <div className="model-selector model-selector--generation">
+            <label className="model-selector__option">
+              <input
+                type="radio"
+                name="generationModel"
+                value="replicate-qwen"
+                checked={generationModel === 'replicate-qwen'}
+                onChange={() => onGenerationModelChange('replicate-qwen')}
+              /> Qwen via Replicate
+            </label>
+            <label className="model-selector__option">
+              <input
+                type="radio"
+                name="generationModel"
+                value="openai-gpt-image-1"
+                checked={generationModel === 'openai-gpt-image-1'}
+                onChange={() => onGenerationModelChange('openai-gpt-image-1')}
+              /> GPT-Image-1 via OpenAI
+            </label>
+          </div>
+        </div>
+        {!userImage && selectedImages.length > 0 && (
           <div className="desktop-only generation-strip">
             {selectedImages.map((img, index) => (
               <div key={img.id} className="generation-strip__item">
@@ -99,7 +102,21 @@ export function GenerationSection({
       <div className="split generation-split">
         <div className="generation-split__source desktop-only">
           {userImage && <h3 className="desktop-only generation-stage__label">Sinistra: reale</h3>}
-          {userImage && <img src={userImage} alt="Reale" className="desktop-only" />}
+          {userImage && (
+            <div className="generation-source-card">
+              <img src={userImage} alt="Reale" className="desktop-only" />
+              {selectedImages.length > 0 && (
+                <div className="generation-strip generation-strip--overlay desktop-only">
+                  {selectedImages.map((img, index) => (
+                    <div key={img.id} className="generation-strip__item generation-strip__item--overlay">
+                      <span className="generation-strip__priority" aria-label={`Priorita ${index + 1}`}>{index + 1}</span>
+                      <img src={img.src} alt={img.title || 'ispirazione'} className="generation-strip__image" onClick={() => onOpenPopup(img.src)} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="generation-stage">
           {(isGenerating || generatedImage) && <h3 className="generation-stage__label mobile-hidden">Destra: ispirazionale</h3>}
@@ -181,6 +198,7 @@ export function GenerationSection({
           attraverso le immagini.
         </p>
       )}
+      </details>
     </section>
   );
 }

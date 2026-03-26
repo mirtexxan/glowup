@@ -26,7 +26,10 @@ export function UnifiedPromptSection({
   return (
     <section className="panel panel-spaced">
       <details open>
-        <summary className="section-summary"><strong>4. Prompt unificato proposto (modificabile)</strong></summary>
+        <summary className="section-summary">
+          <strong>4. Unifica in un solo prompt</strong>
+          <span className="section-summary__subtitle">Qui puoi aggiungere tutto quello che vuoi</span>
+        </summary>
         <div className="section-actions">
           <button
             type="button"

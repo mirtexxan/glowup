@@ -8,6 +8,7 @@ type UploadSectionProps = {
   startWebcam: () => Promise<void>;
   captureWebcam: () => void;
   closeWebcam: () => void;
+  onOpenPopup: (src: string) => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   onFileUpload: (file?: File) => void;
@@ -20,6 +21,7 @@ export function UploadSection({
   startWebcam,
   captureWebcam,
   closeWebcam,
+  onOpenPopup,
   videoRef,
   canvasRef,
   onFileUpload,
@@ -28,19 +30,22 @@ export function UploadSection({
   return (
     <section className="panel panel-spaced panel-upload">
       <details open>
-        <summary className="section-summary"><strong>2. Upload utente</strong></summary>
+        <summary className="section-summary">
+          <strong>2. Carica una tua foto</strong>
+          <span className="section-summary__subtitle">Un solo soggetto per foto!</span>
+        </summary>
         <div className="upload-panel">
+          <input
+            id="user-upload-input"
+            type="file"
+            accept="image/png, image/jpeg"
+            className="hidden-input"
+            onChange={(event) => onFileUpload(event.target.files?.[0])}
+          />
           {!userImage && !showWebcam && (
             <div className="upload-stack">
               <label htmlFor="user-upload-input" className="genera-btn upload-btn" role="button" tabIndex={0}>
                 Scegli file
-                <input
-                  id="user-upload-input"
-                  type="file"
-                  accept="image/png, image/jpeg"
-                  className="hidden-input"
-                  onChange={(event) => onFileUpload(event.target.files?.[0])}
-                />
               </label>
               <button type="button" className="genera-btn upload-btn" onClick={startWebcam}>
                 📷 Scatta foto da webcam
@@ -59,15 +64,40 @@ export function UploadSection({
           )}
           {userImage && (
             <>
-              <img
-                src={userImage}
-                alt="Immagine utente"
-                className="user-preview-image"
+              <button
+                type="button"
+                className="genera-btn upload-btn"
                 onClick={() => { document.getElementById('user-upload-input')?.click(); }}
-              />
-              <button type="button" className="genera-btn upload-btn" onClick={onResetUserImage}>
+              >
                 Seleziona immagine diversa
               </button>
+              <div
+                className="user-preview-card"
+                onClick={() => { document.getElementById('user-upload-input')?.click(); }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    document.getElementById('user-upload-input')?.click();
+                  }
+                }}
+              >
+                <img
+                  src={userImage}
+                  alt="Immagine utente"
+                  className="user-preview-image"
+                />
+                <button
+                  type="button"
+                  className="user-preview-zoom"
+                  onClick={(event) => { event.stopPropagation(); onOpenPopup(userImage); }}
+                  aria-label="Apri zoom immagine utente"
+                  title="Apri zoom immagine utente"
+                >
+                  🔍
+                </button>
+              </div>
             </>
           )}
         </div>

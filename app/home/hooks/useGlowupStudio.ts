@@ -27,6 +27,7 @@ export function useGlowupStudio() {
   const [generatedImage, setGeneratedImage] = useState('');
   const [savedGeneratedImages, setSavedGeneratedImages] = useState<SavedGeneratedImage[]>([]);
   const [error, setError] = useState('');
+  const [descriptionsError, setDescriptionsError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingDescriptions, setIsGeneratingDescriptions] = useState(false);
   const [isGeneratingUnifiedPrompt, setIsGeneratingUnifiedPrompt] = useState(false);
@@ -376,7 +377,7 @@ export function useGlowupStudio() {
 
   const generateSingleInspoDescription = async (id: number, src: string, options?: { triggerUnifiedPrompt?: boolean }) => {
     const triggerUnifiedPrompt = options?.triggerUnifiedPrompt ?? true;
-    setError('');
+    setDescriptionsError('');
     setLoadingDescId(id);
     try {
       const response = await fetch('/api/img2text', {
@@ -389,7 +390,7 @@ export function useGlowupStudio() {
       try {
         data = JSON.parse(text);
       } catch {
-        setError('Risposta non valida dal backend img2text.');
+        setDescriptionsError('Risposta non valida dal backend img2text.');
         setLoadingDescId(null);
         return;
       }
@@ -401,10 +402,10 @@ export function useGlowupStudio() {
         return data.description as string;
       }
       if (data.error) {
-        setError(`Errore img2text: ${data.error}`);
+        setDescriptionsError(`Errore img2text: ${data.error}`);
       }
     } catch {
-      setError('Errore di rete img2text.');
+      setDescriptionsError('Errore di rete img2text.');
     } finally {
       setLoadingDescId(null);
     }
@@ -415,7 +416,7 @@ export function useGlowupStudio() {
     if (selectedImages.length === 0) {
       return;
     }
-    setError('');
+    setDescriptionsError('');
     setIsGeneratingDescriptions(true);
     suppressUnifiedPromptRefreshRef.current = true;
     const nextDescriptions = { ...inspoDescriptions };
@@ -520,6 +521,7 @@ export function useGlowupStudio() {
     generatedImage,
     savedGeneratedImages,
     error,
+    descriptionsError,
     isGenerating,
     isGeneratingDescriptions,
     isGeneratingUnifiedPrompt,
