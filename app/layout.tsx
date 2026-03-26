@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Costruire e sorvegliare il Sé',
-  description: 'MVP per trasformare la tua immagine in aspirazione.',
+  title: 'GlowApp | Costruire e sorvegliare il Se',
+  description: 'Web app per costruire una moodboard visiva, unificare descrizioni AI e generare un risultato ispirazionale.',
 };
 
 export default function RootLayout({
