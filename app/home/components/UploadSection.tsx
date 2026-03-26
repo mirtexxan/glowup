@@ -5,9 +5,14 @@ import type React from 'react';
 type UploadSectionProps = {
   userImage: string;
   showWebcam: boolean;
+  webcamZoom: number;
+  canZoomInWebcam: boolean;
+  canZoomOutWebcam: boolean;
   startWebcam: () => Promise<void>;
   captureWebcam: () => void;
   closeWebcam: () => void;
+  zoomInWebcam: () => void;
+  zoomOutWebcam: () => void;
   onOpenPopup: (src: string) => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -18,9 +23,14 @@ type UploadSectionProps = {
 export function UploadSection({
   userImage,
   showWebcam,
+  webcamZoom,
+  canZoomInWebcam,
+  canZoomOutWebcam,
   startWebcam,
   captureWebcam,
   closeWebcam,
+  zoomInWebcam,
+  zoomOutWebcam,
   onOpenPopup,
   videoRef,
   canvasRef,
@@ -54,11 +64,27 @@ export function UploadSection({
           )}
           {showWebcam && (
             <div className="webcam-stack">
-              <video ref={videoRef} className="webcam-video" autoPlay muted playsInline />
+              <div className="webcam-video-frame">
+                <video
+                  ref={videoRef}
+                  className="webcam-video"
+                  autoPlay
+                  muted
+                  playsInline
+                  style={{ transform: `scale(${webcamZoom})` }}
+                />
+              </div>
               <canvas ref={canvasRef} className="hidden-input" />
-              <div className="inline-actions">
-                <button type="button" className="genera-btn" onClick={captureWebcam}>Scatta</button>
-                <button type="button" className="genera-btn" onClick={closeWebcam}>Annulla</button>
+              <div className="webcam-actions">
+                <div className="webcam-zoom-controls">
+                  <button type="button" className="genera-btn webcam-zoom-btn" onClick={zoomOutWebcam} disabled={!canZoomOutWebcam}>-</button>
+                  <span className="webcam-zoom-indicator">Zoom {webcamZoom.toFixed(2)}x</span>
+                  <button type="button" className="genera-btn webcam-zoom-btn" onClick={zoomInWebcam} disabled={!canZoomInWebcam}>+</button>
+                </div>
+                <div className="webcam-action-buttons">
+                  <button type="button" className="genera-btn webcam-action-btn" onClick={captureWebcam}>Scatta</button>
+                  <button type="button" className="genera-btn webcam-action-btn webcam-action-btn--secondary" onClick={closeWebcam}>Annulla</button>
+                </div>
               </div>
             </div>
           )}

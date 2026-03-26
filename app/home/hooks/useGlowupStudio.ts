@@ -8,7 +8,12 @@ import { orderImagesByPriority } from '../utils';
 const MAX_INSPO = 5;
 
 export function useGlowupStudio() {
+  const MIN_WEBCAM_ZOOM = 1;
+  const MAX_WEBCAM_ZOOM = 2.5;
+  const WEBCAM_ZOOM_STEP = 0.25;
+
   const [showWebcam, setShowWebcam] = useState(false);
+  const [webcamZoom, setWebcamZoom] = useState(1);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const webcamStreamRef = useRef<MediaStream | null>(null);
@@ -186,6 +191,7 @@ export function useGlowupStudio() {
 
   const closeWebcam = () => {
     setShowWebcam(false);
+    setWebcamZoom(MIN_WEBCAM_ZOOM);
     stopWebcamStream();
   };
 
@@ -199,6 +205,7 @@ export function useGlowupStudio() {
       }
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       webcamStreamRef.current = stream;
+      setWebcamZoom(MIN_WEBCAM_ZOOM);
       setShowWebcam(true);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -232,14 +239,38 @@ export function useGlowupStudio() {
       const ctx = canvas.getContext('2d');
 
       if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const sourceWidth = video.videoWidth / webcamZoom;
+        const sourceHeight = video.videoHeight / webcamZoom;
+        const sourceX = (video.videoWidth - sourceWidth) / 2;
+        const sourceY = (video.videoHeight - sourceHeight) / 2;
+
+        ctx.drawImage(
+          video,
+          sourceX,
+          sourceY,
+          sourceWidth,
+          sourceHeight,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
         const dataUrl = canvas.toDataURL('image/png');
         setUserImage(dataUrl);
         setUserFile(null);
         setShowWebcam(false);
+        setWebcamZoom(MIN_WEBCAM_ZOOM);
         stopWebcamStream();
       }
     }
+  };
+
+  const zoomInWebcam = () => {
+    setWebcamZoom((current) => Math.min(MAX_WEBCAM_ZOOM, Number((current + WEBCAM_ZOOM_STEP).toFixed(2))));
+  };
+
+  const zoomOutWebcam = () => {
+    setWebcamZoom((current) => Math.max(MIN_WEBCAM_ZOOM, Number((current - WEBCAM_ZOOM_STEP).toFixed(2))));
   };
 
   const fetchUnsplashImages = async () => {
@@ -528,6 +559,7 @@ export function useGlowupStudio() {
     videoRef,
     canvasRef,
     showWebcam,
+    webcamZoom,
     imageSource,
     searchQuery,
     unsplashImages,
@@ -558,6 +590,8 @@ export function useGlowupStudio() {
     selectedImages,
     canGenerate,
     isCurrentImageSaved,
+    canZoomInWebcam: webcamZoom < MAX_WEBCAM_ZOOM,
+    canZoomOutWebcam: webcamZoom > MIN_WEBCAM_ZOOM,
     setImageSource,
     setSearchQuery,
     setImagesCount,
@@ -569,6 +603,8 @@ export function useGlowupStudio() {
     closeWebcam,
     startWebcam,
     captureWebcam,
+    zoomInWebcam,
+    zoomOutWebcam,
     fetchUnsplashImages,
     handleRemoveUnselected,
     handleImageToggle,

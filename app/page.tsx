@@ -62,9 +62,14 @@ export default function Home() {
       <UploadSection
         userImage={studio.userImage}
         showWebcam={studio.showWebcam}
+        webcamZoom={studio.webcamZoom}
+        canZoomInWebcam={studio.canZoomInWebcam}
+        canZoomOutWebcam={studio.canZoomOutWebcam}
         startWebcam={studio.startWebcam}
         captureWebcam={studio.captureWebcam}
         closeWebcam={studio.closeWebcam}
+        zoomInWebcam={studio.zoomInWebcam}
+        zoomOutWebcam={studio.zoomOutWebcam}
         onOpenPopup={studio.setPopupImg}
         videoRef={studio.videoRef}
         canvasRef={studio.canvasRef}
