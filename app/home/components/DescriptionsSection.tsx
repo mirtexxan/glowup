@@ -14,6 +14,7 @@ type DescriptionsSectionProps = {
   onCaptionModelChange: (model: CaptionModel) => void;
   onGenerateAllDescriptions: () => Promise<void>;
   onToggleDescription: (id: number) => void;
+  onRemoveDescription: (id: number) => void;
   onGenerateSingleDescription: (id: number, src: string) => Promise<string | null | undefined>;
   onDescriptionChange: (id: number, value: string) => void;
   onDescriptionBlur: (id: number) => void;
@@ -30,6 +31,7 @@ export function DescriptionsSection({
   onCaptionModelChange,
   onGenerateAllDescriptions,
   onToggleDescription,
+  onRemoveDescription,
   onGenerateSingleDescription,
   onDescriptionChange,
   onDescriptionBlur,
@@ -94,6 +96,16 @@ export function DescriptionsSection({
                     title="Genera descrizione"
                   >
                     <span role="img" aria-label="aggiorna" className="description-item__refresh-icon">🔄</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="description-item__refresh description-item__remove"
+                    onClick={(event) => { event.stopPropagation(); onRemoveDescription(img.id); }}
+                    disabled={isGeneratingDescriptions || isGenerating || loadingDescId !== null}
+                    title="Rimuovi ispirazione"
+                    aria-label="Rimuovi ispirazione"
+                  >
+                    <span className="description-item__refresh-icon">×</span>
                   </button>
                 </div>
                 {open && (

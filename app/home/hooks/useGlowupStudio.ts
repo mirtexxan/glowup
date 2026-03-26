@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PROMPTS } from '../../../lib/prompts';
-import type { CaptionModel, ImageSource, PinterestImage, SavedGeneratedImage } from '../types';
+import type { CaptionModel, GenerationModel, ImageSource, PinterestImage, SavedGeneratedImage } from '../types';
 import { orderImagesByPriority } from '../utils';
 
 const MAX_INSPO = 5;
@@ -36,6 +36,7 @@ export function useGlowupStudio() {
   const [openDescriptions, setOpenDescriptions] = useState<Record<number, boolean>>({});
   const [loadingDescId, setLoadingDescId] = useState<number | null>(null);
   const [captionModel, setCaptionModel] = useState<CaptionModel>('llava13b');
+  const [generationModel, setGenerationModel] = useState<GenerationModel>('replicate-qwen');
   const [unifiedDescription, setUnifiedDescription] = useState('');
   const [isUnifiedDescriptionEditing, setIsUnifiedDescriptionEditing] = useState(false);
 
@@ -86,7 +87,7 @@ export function useGlowupStudio() {
     }
     shouldRefreshUnifiedPromptRef.current = false;
     const descriptions = selectedImages.map((img) => inspoDescriptions[img.id]).filter(Boolean);
-    generateUnifiedDescriptionAI(descriptions);
+    void generateUnifiedDescriptionAI(descriptions);
   }, [selectedImages, inspoDescriptions]);
 
   async function generateUnifiedDescriptionAI(descriptions: string[]) {
@@ -98,6 +99,14 @@ export function useGlowupStudio() {
       unifiedPromptAbortControllerRef.current = null;
       setIsGeneratingUnifiedPrompt(false);
       setUnifiedDescription('');
+      setIsUnifiedDescriptionEditing(false);
+      return;
+    }
+
+    if (descriptions.length === 1) {
+      unifiedPromptAbortControllerRef.current = null;
+      setIsGeneratingUnifiedPrompt(false);
+      setUnifiedDescription(descriptions[0]?.trim() || '');
       setIsUnifiedDescriptionEditing(false);
       return;
     }
@@ -260,15 +269,30 @@ export function useGlowupStudio() {
       if (selectedIds.length >= MAX_INSPO) {
         return;
       }
+      if (inspoDescriptions[id]?.trim()) {
+        shouldRefreshUnifiedPromptRef.current = true;
+      }
       newSelected = [...selectedIds, id];
     }
     setSelectedIds(newSelected);
     setUnsplashImages((prev) => orderImagesByPriority(prev, newSelected));
-    setInspoDescriptions((prev) => {
-      const next: Record<number, string> = {};
-      for (const selectedId of newSelected) {
-        next[selectedId] = prev[selectedId] || '';
-      }
+  };
+
+  const removeSelectedInspiration = (id: number) => {
+    if (!selectedIds.includes(id)) {
+      return;
+    }
+
+    setError('');
+    setGeneratedImage('');
+    shouldRefreshUnifiedPromptRef.current = true;
+
+    const newSelected = selectedIds.filter((selectedId) => selectedId !== id);
+    setSelectedIds(newSelected);
+    setUnsplashImages((prev) => orderImagesByPriority(prev, newSelected));
+    setOpenDescriptions((prev) => {
+      const next = { ...prev };
+      delete next[id];
       return next;
     });
   };
@@ -329,7 +353,7 @@ export function useGlowupStudio() {
     setOpenDescriptions((prev) => ({ ...prev, [id]: false }));
     shouldRefreshUnifiedPromptRef.current = true;
     const descriptions = selectedImages.map((img) => inspoDescriptions[img.id]).filter(Boolean);
-    generateUnifiedDescriptionAI(descriptions);
+    void generateUnifiedDescriptionAI(descriptions);
   };
 
   const handleUnifiedDescriptionBlur = () => {
@@ -342,7 +366,12 @@ export function useGlowupStudio() {
 
   const regenerateUnifiedDescription = () => {
     const descriptions = selectedImages.map((img) => inspoDescriptions[img.id]).filter(Boolean);
-    generateUnifiedDescriptionAI(descriptions);
+    if (descriptions.length <= 1) {
+      setUnifiedDescription(descriptions[0]?.trim() || '');
+      setIsUnifiedDescriptionEditing(false);
+      return;
+    }
+    void generateUnifiedDescriptionAI(descriptions);
   };
 
   const generateSingleInspoDescription = async (id: number, src: string, options?: { triggerUnifiedPrompt?: boolean }) => {
@@ -424,11 +453,14 @@ export function useGlowupStudio() {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_data: userImage, prompt: unifiedDescription }),
+        body: JSON.stringify({ image_data: userImage, prompt: unifiedDescription, model: generationModel }),
       });
       const data = await response.json();
       if (!response.ok) {
         let debugMessage = data.error || 'Errore nella generazione dell’immagine.';
+        if (data.provider) {
+          debugMessage += `\nProvider: ${data.provider}`;
+        }
         if (data.replicate_status || data.replicate_detail) {
           debugMessage += '\nStatus: ' + (data.replicate_status || '');
           debugMessage += '\nDetail: ' + JSON.stringify(data.replicate_detail, null, 2);
@@ -497,6 +529,7 @@ export function useGlowupStudio() {
     openDescriptions,
     loadingDescId,
     captionModel,
+    generationModel,
     unifiedDescription,
     isUnifiedDescriptionEditing,
     selectedImages,
@@ -507,6 +540,7 @@ export function useGlowupStudio() {
     setImagesCount,
     setPopupImg,
     setCaptionModel,
+    setGenerationModel,
     setUnifiedDescription,
     getPriorityById,
     closeWebcam,
@@ -515,6 +549,7 @@ export function useGlowupStudio() {
     fetchUnsplashImages,
     handleRemoveUnselected,
     handleImageToggle,
+    removeSelectedInspiration,
     moveSelectedPriority,
     handleFileUpload,
     resetUserImage,

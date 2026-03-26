@@ -351,6 +351,13 @@ select {
   border-color: var(--accent);
 }
 
+.search-result-toggle--zoom {
+  top: auto;
+  bottom: 8px;
+  right: 8px;
+  z-index: 3;
+}
+
 .search-result-toggle--priority {
   left: 8px;
   right: auto;
@@ -584,6 +591,14 @@ select {
 .description-item__refresh:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.description-item__remove {
+  color: #9f1239;
+}
+
+.description-item__remove:not(:disabled) {
+  border-color: rgba(159, 18, 57, 0.18);
 }
 
 .description-item__refresh-icon {

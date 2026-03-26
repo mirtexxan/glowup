@@ -1,11 +1,12 @@
 "use client";
 
-import type { PinterestImage, SavedGeneratedImage } from '../types';
+import type { GenerationModel, PinterestImage, SavedGeneratedImage } from '../types';
 
 type GenerationSectionProps = {
   canGenerate: boolean;
   isGeneratingUnifiedPrompt: boolean;
   isGenerating: boolean;
+  generationModel: GenerationModel;
   selectedImages: PinterestImage[];
   userImage: string;
   generatedImage: string;
@@ -13,6 +14,7 @@ type GenerationSectionProps = {
   error: string;
   usedPrompt: string;
   isCurrentImageSaved: boolean;
+  onGenerationModelChange: (model: GenerationModel) => void;
   onGenerate: () => Promise<void>;
   onOpenPopup: (src: string) => void;
   onSaveCurrentGeneratedImage: () => void;
@@ -24,6 +26,7 @@ export function GenerationSection({
   canGenerate,
   isGeneratingUnifiedPrompt,
   isGenerating,
+  generationModel,
   selectedImages,
   userImage,
   generatedImage,
@@ -31,6 +34,7 @@ export function GenerationSection({
   error,
   usedPrompt,
   isCurrentImageSaved,
+  onGenerationModelChange,
   onGenerate,
   onOpenPopup,
   onSaveCurrentGeneratedImage,
@@ -40,6 +44,26 @@ export function GenerationSection({
   return (
     <section className="panel panel-spaced panel-generated">
       <h2 className="section-title">5. Generazione immagine ispirazionale</h2>
+      <div className="model-selector">
+        <label className="model-selector__option">
+          <input
+            type="radio"
+            name="generationModel"
+            value="replicate-qwen"
+            checked={generationModel === 'replicate-qwen'}
+            onChange={() => onGenerationModelChange('replicate-qwen')}
+          /> Qwen via Replicate
+        </label>
+        <label className="model-selector__option">
+          <input
+            type="radio"
+            name="generationModel"
+            value="openai-gpt-image-1"
+            checked={generationModel === 'openai-gpt-image-1'}
+            onChange={() => onGenerationModelChange('openai-gpt-image-1')}
+          /> GPT-Image-1 via OpenAI
+        </label>
+      </div>
       <div className="generation-toolbar">
         <button className="genera-btn" onClick={onGenerate} disabled={!canGenerate || isGeneratingUnifiedPrompt} type="button">
           {isGenerating ? 'Generazione in corso...' : 'Genera immagine ispirazionale'}

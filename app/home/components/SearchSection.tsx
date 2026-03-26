@@ -103,13 +103,35 @@ export function SearchSection({
         {imagesError && <div className="alert">{imagesError}{imagesErrorDetail ? `: ${imagesErrorDetail}` : ''}</div>}
         <div className="grid pinterest-grid">
           {unsplashImages.map((img) => (
-            <div key={img.id} className={`search-result-card${selectedIds.includes(img.id) ? ' is-selected' : ''}`}>
-              <img src={img.src} alt={img.title} className="search-result-image" onClick={() => onOpenPopup(img.src)} />
+            <div
+              key={img.id}
+              className={`search-result-card${selectedIds.includes(img.id) ? ' is-selected' : ''}`}
+              onClick={() => onToggleImage(img.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onToggleImage(img.id);
+                }
+              }}
+              aria-pressed={selectedIds.includes(img.id)}
+            >
+              <img src={img.src} alt={img.title} className="search-result-image" />
+              <button
+                type="button"
+                onClick={(event) => { event.stopPropagation(); onOpenPopup(img.src); }}
+                className="search-result-toggle search-result-toggle--zoom"
+                aria-label="Apri zoom immagine"
+                title="Apri zoom immagine"
+              >
+                🔍
+              </button>
               {selectedIds.includes(img.id) ? (
                 <>
                   <button
                     type="button"
-                    onClick={() => onToggleImage(img.id)}
+                    onClick={(event) => { event.stopPropagation(); onToggleImage(img.id); }}
                     className="search-result-toggle search-result-toggle--priority is-selected"
                     aria-label={`Deseleziona immagine con priorita ${getPriorityById(img.id)}`}
                   >
@@ -119,7 +141,7 @@ export function SearchSection({
                     <button
                       type="button"
                       className="search-result-move-btn"
-                      onClick={() => onMovePriority(img.id, 'up')}
+                      onClick={(event) => { event.stopPropagation(); onMovePriority(img.id, 'up'); }}
                       disabled={getPriorityById(img.id) === 1}
                       aria-label={`Alza priorita immagine ${getPriorityById(img.id)}`}
                     >
@@ -128,7 +150,7 @@ export function SearchSection({
                     <button
                       type="button"
                       className="search-result-move-btn"
-                      onClick={() => onMovePriority(img.id, 'down')}
+                      onClick={(event) => { event.stopPropagation(); onMovePriority(img.id, 'down'); }}
                       disabled={getPriorityById(img.id) === selectedIds.length}
                       aria-label={`Abbassa priorita immagine ${getPriorityById(img.id)}`}
                     >
@@ -136,11 +158,7 @@ export function SearchSection({
                     </button>
                   </div>
                 </>
-              ) : (
-                <button type="button" onClick={() => onToggleImage(img.id)} className="search-result-toggle" aria-label="Seleziona">
-                  +
-                </button>
-              )}
+              ) : null}
             </div>
           ))}
         </div>

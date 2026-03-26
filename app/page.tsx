@@ -64,6 +64,7 @@ export default function Home() {
         onCaptionModelChange={studio.setCaptionModel}
         onGenerateAllDescriptions={studio.generateInspoDescriptions}
         onToggleDescription={studio.toggleDescription}
+        onRemoveDescription={studio.removeSelectedInspiration}
         onGenerateSingleDescription={studio.generateSingleInspoDescription}
         onDescriptionChange={studio.handleInspoChange}
         onDescriptionBlur={studio.handleInspoBlur}
@@ -71,7 +72,7 @@ export default function Home() {
 
       <UnifiedPromptSection
         isGeneratingUnifiedPrompt={studio.isGeneratingUnifiedPrompt}
-        canRegenerate={studio.selectedImages.length > 0}
+        canRegenerate={studio.selectedImages.length > 1}
         unifiedDescription={studio.unifiedDescription}
         isUnifiedDescriptionEditing={studio.isUnifiedDescriptionEditing}
         onRegenerate={studio.regenerateUnifiedDescription}
@@ -84,6 +85,7 @@ export default function Home() {
         canGenerate={studio.canGenerate}
         isGeneratingUnifiedPrompt={studio.isGeneratingUnifiedPrompt}
         isGenerating={studio.isGenerating}
+        generationModel={studio.generationModel}
         selectedImages={studio.selectedImages}
         userImage={studio.userImage}
         generatedImage={studio.generatedImage}
@@ -91,6 +93,7 @@ export default function Home() {
         error={studio.error}
         usedPrompt={studio.usedPrompt}
         isCurrentImageSaved={studio.isCurrentImageSaved}
+        onGenerationModelChange={studio.setGenerationModel}
         onGenerate={studio.generateAspirational}
         onOpenPopup={studio.setPopupImg}
         onSaveCurrentGeneratedImage={studio.saveCurrentGeneratedImage}
