@@ -52,9 +52,7 @@ If the subject is a man, do not mention makeup.`,
 The assistant describes the visual content of images in detail.`,
   },
   generateImage: {
-    glowupInstruction: `The goal is a glowup: make the person look more fit, beautiful, slim, and cool, while keeping coherence with the original image and the inspirational references.
-
-Describe the outfit in a detailed way, specifying the garments clearly and using precise colors for each clothing item, accessory, and visible styling element whenever possible.`,
+    glowupInstruction: `The goal is a glowup: make the person look more fit, beautiful, slim, and cool, while keeping coherence with the original image and the inspirational references.`,
   },
 } as const;
 

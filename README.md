@@ -21,6 +21,7 @@ GlowApp permette di:
 - fondere le descrizioni in un prompt unico, coerente e focalizzato su una sola persona;
 - caricare una foto locale oppure acquisirla da webcam;
 - generare una nuova immagine ispirazionale con Replicate;
+- scegliere il backend di generazione tra Replicate Qwen e OpenAI GPT-Image-1;
 - salvare piu varianti nella galleria progressi e scaricarle localmente.
 
 ## Requisiti
@@ -42,7 +43,7 @@ Variabili richieste:
 - `REPLICATE_API_KEY`: captioning e generazione immagine
 - `UNSPLASH_ACCESS_KEY`: ricerca immagini Unsplash
 - `PEXELS_API_KEY`: ricerca immagini Pexels
-- `OPENAI_API_KEY`: unificazione del prompt
+- `OPENAI_API_KEY`: unificazione del prompt e backend alternativo GPT-Image-1
 
 Se una chiave manca, la parte corrispondente del flusso non funzionera.
 
@@ -112,6 +113,7 @@ Per una spiegazione completa dell'architettura attuale vedi:
 
 - la webcam richiede permessi browser e un device non occupato da altre applicazioni;
 - la generazione finale dipende dalla disponibilita dei provider esterni;
+- l'API OpenAI non e normalmente inclusa nell'abbonamento ChatGPT: usa una fatturazione API separata;
 - i prompt configurabili sono centralizzati in `lib/prompts.ts`.
 
 ## Licenza e note
