@@ -1,0 +1,132 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #f8f7f3;
+  --card: #ffffff;
+  --text: #2b2b2b;
+  --muted: #6b6b6b;
+  --accent: #1d4ed8;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+main {
+  width: min(1200px, 92vw);
+  margin: 2rem auto;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.45rem;
+}
+
+button {
+  cursor: pointer;
+}
+
+.grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pinterest-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.image-card {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  position: relative;
+}
+
+.image-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(34, 67, 179, 0.18);
+}
+
+.image-card img {
+  width: 100%;
+  display: block;
+  height: 150px;
+  object-fit: cover;
+}
+
+.selected-count {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.moodboard {
+  background: white;
+  border-radius: 14px;
+  padding: 0.9rem;
+  margin-top: 1rem;
+  border: 1px solid #e6e6e6;
+}
+
+.panel {
+  border-radius: 14px;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.split img {
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  min-height: 300px;
+}
+
+input[type='file'] {
+  margin-top: 0.6rem;
+}
+
+.genera-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  margin-top: 0.9rem;
+}
+
+.genera-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.alert {
+  margin-top: 0.7rem;
+  color: #b91c1c;
+}
+
+.output-text {
+  margin-top: 1rem;
+  font-style: italic;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
