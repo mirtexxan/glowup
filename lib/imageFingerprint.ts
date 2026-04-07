@@ -8,6 +8,24 @@ function decodeDataUrl(dataUrl: string): Buffer {
   return Buffer.from(parts[1], 'base64');
 }
 
+/**
+ * For remote URLs (Pexels, Unsplash, etc.) we hash the *normalized* URL
+ * (path only, no query params) so the cache key is stable even when the CDN
+ * appends different size/quality parameters to the same image.
+ * For data: URIs we hash the actual bytes so two different uploaded images
+ * with the same name cannot collide.
+ */
+function normalizeRemoteUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    // Keep only origin + pathname – strip all query/fragment params that vary
+    // by client, device or request (w, h, dpr, auto, cs, fm, fit, crop, q, …)
+    return parsed.origin + parsed.pathname;
+  } catch {
+    return url;
+  }
+}
+
 export async function getImageBuffer(imageUrlOrData: string): Promise<Buffer> {
   if (imageUrlOrData.startsWith('data:image/')) {
     return decodeDataUrl(imageUrlOrData);
@@ -23,6 +41,13 @@ export async function getImageBuffer(imageUrlOrData: string): Promise<Buffer> {
 }
 
 export async function computeImageContentHash(imageUrlOrData: string): Promise<string> {
-  const buffer = await getImageBuffer(imageUrlOrData);
+  // Remote URL → hash the stable canonical path (no download needed)
+  if (/^https?:\/\//i.test(imageUrlOrData)) {
+    const canonical = normalizeRemoteUrl(imageUrlOrData);
+    return 'url:' + createHash('sha256').update(canonical).digest('hex');
+  }
+
+  // data: URI → hash actual bytes
+  const buffer = decodeDataUrl(imageUrlOrData);
   return createHash('sha256').update(buffer).digest('hex');
 }
