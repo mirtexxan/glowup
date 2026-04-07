@@ -5,13 +5,16 @@ export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
   try {
-    const { descriptions } = await req.json();
+    const { descriptions, subjectIdentityMetadata, subjectDescription } = await req.json();
     if (!Array.isArray(descriptions) || descriptions.length === 0) {
       return NextResponse.json({ error: 'Nessuna descrizione fornita.' }, { status: 400 });
     }
     // Chiamata a modello AI (es: OpenAI, Replicate, ecc.)
     // Qui esempio con OpenAI API (sostituisci con la tua chiave e modello)
-    const prompt = buildUnifiedPromptUserMessage(descriptions);
+    const safeSubjectMetadata = typeof subjectIdentityMetadata === 'string'
+      ? subjectIdentityMetadata
+      : (typeof subjectDescription === 'string' ? subjectDescription : undefined);
+    const prompt = buildUnifiedPromptUserMessage(descriptions, safeSubjectMetadata);
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -25,7 +28,7 @@ export async function POST(req: NextRequest) {
           { role: 'user', content: prompt }
         ],
         max_tokens: 600,
-        temperature: 0.7
+        temperature: 0.2
       })
     });
     if (!openaiRes.ok) {

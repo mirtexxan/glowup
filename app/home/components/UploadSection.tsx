@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from 'react';
 import type React from 'react';
 
 type UploadSectionProps = {
   userImage: string;
+  userImageDescription: string;
+  isGeneratingUserImageDescription: boolean;
   showWebcam: boolean;
   webcamZoom: number;
   canZoomInWebcam: boolean;
@@ -17,11 +20,15 @@ type UploadSectionProps = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   onFileUpload: (file?: File) => void;
+  onUploadFromUrl: (url: string) => void;
   onResetUserImage: () => void;
+  uploadError: string;
 };
 
 export function UploadSection({
   userImage,
+  userImageDescription,
+  isGeneratingUserImageDescription,
   showWebcam,
   webcamZoom,
   canZoomInWebcam,
@@ -35,8 +42,12 @@ export function UploadSection({
   videoRef,
   canvasRef,
   onFileUpload,
+  onUploadFromUrl,
   onResetUserImage,
+  uploadError,
 }: UploadSectionProps) {
+  const [imageUrl, setImageUrl] = useState('');
+
   return (
     <section className="panel panel-spaced panel-upload">
       <details open>
@@ -59,6 +70,25 @@ export function UploadSection({
               </label>
               <button type="button" className="genera-btn upload-btn" onClick={startWebcam}>
                 📷 Scatta foto da webcam
+              </button>
+            </div>
+          )}
+          {!showWebcam && (
+            <div className="upload-url-row">
+              <input
+                type="url"
+                className="search-input"
+                placeholder="Oppure incolla URL immagine (https://...)"
+                value={imageUrl}
+                onChange={(event) => setImageUrl(event.target.value)}
+              />
+              <button
+                type="button"
+                className="genera-btn"
+                onClick={() => onUploadFromUrl(imageUrl)}
+                disabled={!imageUrl.trim()}
+              >
+                Carica da URL
               </button>
             </div>
           )}
@@ -126,8 +156,13 @@ export function UploadSection({
                   🔍
                 </button>
               </div>
+              <div className="user-caption-debug">
+                <strong>Caption soggetto (debug):</strong>{' '}
+                {isGeneratingUserImageDescription ? 'generazione in corso...' : (userImageDescription || 'nessuna descrizione disponibile')}
+              </div>
             </>
           )}
+          {uploadError && <div className="alert">{uploadError}</div>}
         </div>
       </details>
     </section>

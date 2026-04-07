@@ -9,7 +9,7 @@ import { UnifiedPromptSection } from './home/components/UnifiedPromptSection';
 import { UploadSection } from './home/components/UploadSection';
 import { useGlowupStudio } from './home/hooks/useGlowupStudio';
 
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.1';
 const RELEASE_DATE = '2026-03-26';
 
 export default function Home() {
@@ -22,7 +22,8 @@ export default function Home() {
           <div className="page-hero__brand">
             <div className="page-hero__heading">
               <h1>
-                GlowApp
+                <span className="page-hero__title-text">GlowApp</span>
+                <img src="/brand/logo.png" alt="" aria-hidden="true" className="page-hero__shield" />
                 <sup className="version-badge version-badge--hero">v{APP_VERSION}</sup>
               </h1>
               <p className="page-hero__subtitle">Costruisci il tuo sé ideale</p>
@@ -61,6 +62,8 @@ export default function Home() {
 
       <UploadSection
         userImage={studio.userImage}
+        userImageDescription={studio.userImageDescription}
+        isGeneratingUserImageDescription={studio.isGeneratingUserImageDescription}
         showWebcam={studio.showWebcam}
         webcamZoom={studio.webcamZoom}
         canZoomInWebcam={studio.canZoomInWebcam}
@@ -74,7 +77,9 @@ export default function Home() {
         videoRef={studio.videoRef}
         canvasRef={studio.canvasRef}
         onFileUpload={studio.handleFileUpload}
+        onUploadFromUrl={studio.handleImageUrlUpload}
         onResetUserImage={studio.resetUserImage}
+        uploadError={studio.uploadError}
       />
 
       <DescriptionsSection
@@ -82,14 +87,20 @@ export default function Home() {
         openDescriptions={studio.openDescriptions}
         inspoDescriptions={studio.inspoDescriptions}
         error={studio.descriptionsError}
-        loadingDescId={studio.loadingDescId}
+        loadingDescIds={studio.loadingDescIds}
         isGeneratingDescriptions={studio.isGeneratingDescriptions}
         isGenerating={studio.isGenerating}
         captionModel={studio.captionModel}
+        autoCaptioning={studio.autoCaptioning}
+        descriptionHistoryById={studio.descriptionHistoryById}
+        selectedDescriptionVersionById={studio.selectedDescriptionVersionById}
+        descriptionSourceById={studio.descriptionSourceById}
         onCaptionModelChange={studio.setCaptionModel}
+        onAutoCaptioningChange={studio.setAutoCaptioning}
+        onSelectDescriptionVersion={studio.selectDescriptionVersion}
+        onDeleteDescription={studio.deleteDescriptionVersion}
         onGenerateAllDescriptions={studio.generateInspoDescriptions}
         onToggleDescription={studio.toggleDescription}
-        onRemoveDescription={studio.removeSelectedInspiration}
         onGenerateSingleDescription={studio.generateSingleInspoDescription}
         onDescriptionChange={studio.handleInspoChange}
         onDescriptionBlur={studio.handleInspoBlur}
@@ -97,14 +108,16 @@ export default function Home() {
 
       <UnifiedPromptSection
         isGeneratingUnifiedPrompt={studio.isGeneratingUnifiedPrompt}
-        canRegenerate={studio.selectedImages.length > 1}
+        canRegenerate={studio.canGenerateUnifiedPrompt}
         unifiedDescription={studio.unifiedDescription}
         error={studio.unifiedPromptError}
         isUnifiedDescriptionEditing={studio.isUnifiedDescriptionEditing}
+        autoUnifiedPrompt={studio.autoUnifiedPrompt}
         onRegenerate={studio.regenerateUnifiedDescription}
         onUnifiedDescriptionChange={studio.setUnifiedDescription}
         onUnifiedDescriptionBlur={studio.handleUnifiedDescriptionBlur}
         onStartUnifiedDescriptionEditing={studio.startUnifiedDescriptionEditing}
+        onAutoUnifiedPromptChange={studio.setAutoUnifiedPrompt}
       />
 
       <GenerationSection

@@ -156,8 +156,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Immagine mancante.' }, { status: 400 });
     }
 
+    const identityPreservationInstruction = PROMPTS.generateImage.identityPreservationInstruction;
     const glowupInstruction = PROMPTS.generateImage.glowupInstruction;
-    const fullPrompt = `${prompt?.trim() || ''}\n${glowupInstruction}`;
+    const fullPrompt = `${prompt?.trim() || ''}\n${identityPreservationInstruction}\n${glowupInstruction}`;
 
     switch (model || 'replicate-qwen') {
       case 'openai-gpt-image-1':

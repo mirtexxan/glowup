@@ -8,10 +8,12 @@ type UnifiedPromptSectionProps = {
   unifiedDescription: string;
   error: string;
   isUnifiedDescriptionEditing: boolean;
+  autoUnifiedPrompt: boolean;
   onRegenerate: () => void;
   onUnifiedDescriptionChange: (value: string) => void;
   onUnifiedDescriptionBlur: () => void;
   onStartUnifiedDescriptionEditing: () => void;
+  onAutoUnifiedPromptChange: (value: boolean) => void;
 };
 
 export function UnifiedPromptSection({
@@ -20,11 +22,15 @@ export function UnifiedPromptSection({
   unifiedDescription,
   error,
   isUnifiedDescriptionEditing,
+  autoUnifiedPrompt,
   onRegenerate,
   onUnifiedDescriptionChange,
   onUnifiedDescriptionBlur,
   onStartUnifiedDescriptionEditing,
+  onAutoUnifiedPromptChange,
 }: UnifiedPromptSectionProps) {
+  const actionLabel = unifiedDescription.trim() ? 'Rigenera' : 'Genera';
+
   return (
     <section className="panel panel-spaced">
       <details open>
@@ -38,14 +44,22 @@ export function UnifiedPromptSection({
             className="genera-btn"
             onClick={onRegenerate}
             disabled={isGeneratingUnifiedPrompt || !canRegenerate}
-            title="Rigenera prompt unificato"
+            title={`${actionLabel} prompt unificato`}
           >
-            🔄 Rigenera prompt
+            {actionLabel}
           </button>
           {isGeneratingUnifiedPrompt && (
             <span className="spinner" style={{ width: 20, height: 20, border: '3px solid #ccc', borderTop: '3px solid #0070f3', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
           )}
         </div>
+        <label className="auto-toggle">
+          <input
+            type="checkbox"
+            checked={autoUnifiedPrompt}
+            onChange={(e) => onAutoUnifiedPromptChange(e.target.checked)}
+          />
+          Aggiorna automaticamente
+        </label>
         {isUnifiedDescriptionEditing ? (
           <AutoResizeTextarea
             value={unifiedDescription}

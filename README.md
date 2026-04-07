@@ -1,4 +1,3 @@
-
 # GlowApp
 
 GlowApp e una web app Next.js per costruire una moodboard visiva, descriverla con modelli AI, sintetizzarla in un prompt unico e generare un'immagine ispirazionale a partire da una foto reale.
@@ -24,51 +23,148 @@ GlowApp permette di:
 - scegliere il backend di generazione tra Replicate Qwen e OpenAI GPT-Image-1;
 - salvare piu varianti nella galleria progressi e scaricarle localmente.
 
-## Requisiti
+## Requisiti di sistema
 
-- Node.js 18 o superiore
-- npm
-- chiavi API valide per i servizi esterni usati dall'app
+Prima di iniziare, assicurati di avere installato:
 
-## Variabili d'ambiente
+| Software | Versione minima | Link download |
+|---|---|---|
+| **Node.js** | 18 LTS o superiore | https://nodejs.org/ |
+| **Git** | qualsiasi versione recente | https://git-scm.com/ |
+| **VS Code** *(opzionale)* | qualsiasi versione recente | https://code.visualstudio.com/ |
 
-Copia `.env.example` in `.env.local` e compila i valori richiesti.
+Verifica che Node.js sia installato correttamente:
 
 ```powershell
-Copy-Item .env.example .env.local
+node --version   # deve mostrare v18.x o superiore
+npm --version
 ```
 
-Variabili richieste:
+---
 
-- `REPLICATE_API_KEY`: captioning e generazione immagine
-- `UNSPLASH_ACCESS_KEY`: ricerca immagini Unsplash
-- `PEXELS_API_KEY`: ricerca immagini Pexels
-- `OPENAI_API_KEY`: unificazione del prompt e backend alternativo GPT-Image-1
+## 1 — Clona il repository
 
-Se una chiave manca, la parte corrispondente del flusso non funzionera.
+```powershell
+git clone <URL-del-tuo-repository> glowapp
+cd glowapp
+```
 
-## Installazione locale
+Se il progetto è già presente sul disco, entra direttamente nella cartella:
 
-Se il progetto e gia presente sul tuo disco, entra direttamente nella cartella. Se devi clonarlo, usa l'URL del repository che stai effettivamente usando.
+```powershell
+cd C:\percorso\alla\cartella\glowup
+```
+
+---
+
+## 2 — Installa le dipendenze Node
 
 ```powershell
 npm install
 ```
 
-Avvio in sviluppo:
+Questo scarica tutti i pacchetti definiti in `package.json` (Next.js, React, Prisma, OpenAI SDK, Replicate SDK ecc.).
+
+---
+
+## 3 — Ottieni le chiavi API
+
+L'app richiede account e chiavi sui seguenti servizi:
+
+| Servizio | Dove ottenerla | Variabile d'ambiente |
+|---|---|---|
+| **Replicate** | https://replicate.com → Account → API Tokens | `REPLICATE_API_KEY` |
+| **Unsplash** | https://unsplash.com/developers → New Application | `UNSPLASH_ACCESS_KEY` |
+| **Pexels** | https://www.pexels.com/api/ → Get Started | `PEXELS_API_KEY` |
+| **OpenAI** | https://platform.openai.com/api-keys | `OPENAI_API_KEY` |
+
+> **Nota OpenAI:** l'API key è separata dall'abbonamento ChatGPT. Puoi aggiungere credito direttamente su https://platform.openai.com/settings/organization/billing
+
+---
+
+## 4 — Configura le variabili d'ambiente
+
+Copia il file di esempio e compilalo con le tue chiavi:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Apri `.env.local` e inserisci i valori:
+
+```env
+# API esterne
+REPLICATE_API_KEY=r8_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+UNSPLASH_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+PEXELS_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Database remoto PostgreSQL (Supabase/Neon/Railway)
+DATABASE_URL=postgresql://user:password@host.pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+Se una chiave manca, la parte corrispondente non funzionerà ma il resto dell'app rimarrà operativo.
+
+---
+
+## 5 — Configura PostgreSQL remoto (cache descrizioni AI)
+
+Il database serve a memorizzare le descrizioni generate dall'AI così da non ricalcolarle ogni volta per la stessa immagine.
+
+Provider con piano free compatibili:
+
+- **Neon** — https://neon.tech (PostgreSQL serverless, molto semplice)
+- **Supabase** — https://supabase.com
+- **Railway** — https://railway.app
+- **Render** — https://render.com
+
+Crea un database su uno di questi servizi, copia la stringa di connessione fornita e incollala come `DATABASE_URL` in `.env.local`.
+
+---
+
+## 6 — Inizializza Prisma (schema del database)
+
+Dopo aver configurato `DATABASE_URL`, esegui:
+
+```powershell
+# genera il client TypeScript da schema.prisma
+npm run prisma:generate
+
+# crea/aggiorna le tabelle nel database
+npm run prisma:push
+```
+
+Devi ripetere `prisma:push` ogni volta che modifichi `prisma/schema.prisma`.
+
+---
+
+## 7 — Avvia l'app
+
+### Sviluppo
 
 ```powershell
 npm run dev
 ```
 
-L'app sara disponibile su `http://localhost:3000`.
+L'app sarà disponibile su `http://localhost:3000`. Il server ricarica automaticamente al salvataggio di ogni file.
 
-Build di produzione locale:
+### Con VS Code — avvio in un solo click
+
+Il progetto include una configurazione Run & Debug per VS Code che avvia il server Next.js:
+
+1. Apri il progetto in VS Code
+2. Vai in **Run and Debug** (icona play nella barra laterale) oppure premi `Ctrl+Shift+D`
+3. Seleziona **GlowApp: Dev Server** dal menu a tendina
+4. Premi **F5** (o il pulsante play verde)
+
+### Build di produzione locale
 
 ```powershell
 npm run build
 npm run start
 ```
+
+---
 
 ## Come si usa
 
@@ -91,6 +187,12 @@ Per pubblicarne una copia:
 2. configura le stesse variabili d'ambiente presenti in `.env.local`;
 3. esegui il deploy;
 4. verifica che le API route funzionino anche nell'ambiente cloud.
+
+Nota database su Vercel:
+
+- il database SQL non vive "dentro" il runtime Vercel;
+- Vercel si collega a un DB esterno via `DATABASE_URL` (es. Neon, Supabase, Railway, Render, PlanetScale);
+- molti provider offrono un piano gratuito piccolo, spesso sufficiente per una cache testuale come questa.
 
 ## Stack tecnico
 

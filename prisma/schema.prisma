@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DescriptionSourceType {
+  ai
+  manual
+}
+
+model ImageAsset {
+  id          String             @id @default(cuid())
+  contentHash String             @unique
+  sourceUrl   String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  descriptions ImageDescription[]
+
+  @@index([createdAt])
+}
+
+model ImageDescription {
+  id            String                @id @default(cuid())
+  imageId        String
+  image          ImageAsset            @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  captionModel   String
+  promptVersion  String
+  language       String
+  description    String
+  sourceType     DescriptionSourceType
+  isActive       Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+
+  @@index([imageId, isActive])
+  @@index([captionModel, promptVersion, language, isActive])
+}
