@@ -10,7 +10,7 @@ const replicate = new Replicate({
 });
 
 const CAPTION_PROMPT_VERSION = 'img2text-v1';
-const CAPTION_LANGUAGE = 'it';
+const CAPTION_LANGUAGE = 'en';
 
 type CaptionModel = 'llava13b' | 'blip2' | 'blip3';
 type DescriptionHistoryItem = {

@@ -1,6 +1,7 @@
 
 "use client";
 
+import { APP_VERSION, RELEASE_DATE } from '../lib/version';
 import { DescriptionsSection } from './home/components/DescriptionsSection';
 import { GenerationSection } from './home/components/GenerationSection';
 import { ImagePopup } from './home/components/ImagePopup';
@@ -9,8 +10,6 @@ import { UnifiedPromptSection } from './home/components/UnifiedPromptSection';
 import { UploadSection } from './home/components/UploadSection';
 import { useGlowupStudio } from './home/hooks/useGlowupStudio';
 
-const APP_VERSION = '1.1';
-const RELEASE_DATE = '2026-03-26';
 
 export default function Home() {
   const studio = useGlowupStudio();
