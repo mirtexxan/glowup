@@ -105,6 +105,19 @@ DATABASE_URL=postgresql://user:password@host.pooler.supabase.com:5432/postgres?s
 
 Se una chiave manca, la parte corrispondente non funzionerà ma il resto dell'app rimarrà operativo.
 
+### Ripristino credenziali dopo la migrazione del PC
+
+Una copia di emergenza cifrata di `.env.local` si trova nell'archivio
+`segreti-pc-pre-format-20260903.rar`, nella cartella privata del Drive personale
+[Backup PC pre-format 2026-09-03](https://drive.google.com/drive/folders/1JPtF_oXjCZriQkRm_-767F6ufkbgTAeB).
+
+Estrarre l'archivio fuori dal repository, copiare `.env.local` nella root e
+cancellare subito l'estrazione temporanea. Non commettere né mostrare il file.
+Il file contiene soltanto la configurazione privata per `DATABASE_URL`,
+`OPENAI_API_KEY`, `PEXELS_API_KEY`, `REPLICATE_API_KEY` e
+`UNSPLASH_ACCESS_KEY`; dopo il ripristino verificare i servizi e ruotare le
+chiavi non più necessarie o potenzialmente esposte.
+
 ---
 
 ## 5 — Configura PostgreSQL remoto (cache descrizioni AI)
